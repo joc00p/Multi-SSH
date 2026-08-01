@@ -16,6 +16,7 @@ public partial class MainWindow : Window
     private readonly List<SessionPane> _panes = new();
     private ViewMode _mode = ViewMode.Tabs;
     private SessionPane? _active;
+    private SessionPane? _maximized;
 
     public MainWindow()
     {
@@ -166,6 +167,7 @@ public partial class MainWindow : Window
     private void SetMode(ViewMode mode)
     {
         _mode = mode;
+        _maximized = null; // switching layout exits a maximized pane
         RebuildContent();
     }
 
@@ -178,6 +180,7 @@ public partial class MainWindow : Window
         pane.CloseRequested += ClosePane;
         pane.ReconnectRequested += p => _ = p.Session.ReconnectAsync();
         pane.Activated += SetActive;
+        pane.MaximizeToggleRequested += ToggleMaximize;
         // When the remote shell exits, destroy its window automatically.
         view.ShellExited += _ => ClosePane(pane);
 
@@ -191,6 +194,13 @@ public partial class MainWindow : Window
         if (!_panes.Remove(pane)) return; // already closed (idempotent)
         pane.Session.Close();
         if (_active == pane) _active = _panes.LastOrDefault();
+        if (_maximized == pane) _maximized = null;
+        RebuildContent();
+    }
+
+    private void ToggleMaximize(SessionPane pane)
+    {
+        _maximized = ReferenceEquals(_maximized, pane) ? null : pane;
         RebuildContent();
     }
 
@@ -214,6 +224,19 @@ public partial class MainWindow : Window
         {
             ContentHost.Children.Add(EmptyHint);
             HighlightModeButton();
+            return;
+        }
+
+        if (_maximized != null && !_panes.Contains(_maximized))
+            _maximized = null;
+
+        if (_maximized != null)
+        {
+            // One pane fills the whole area; double-click its header to restore.
+            _maximized.HeaderVisible = true;
+            ContentHost.Children.Add(_maximized);
+            HighlightModeButton();
+            SetActive(_maximized);
             return;
         }
 
