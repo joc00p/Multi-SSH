@@ -24,6 +24,8 @@ public class SessionPane : Border
     public event Action<SessionPane>? CloseRequested;
     public event Action<SessionPane>? ReconnectRequested;
     public event Action<SessionPane>? Activated;
+    /// <summary>Raised when the header is double-clicked — toggle maximize/restore.</summary>
+    public event Action<SessionPane>? MaximizeToggleRequested;
 
     private static readonly Color ActiveColor = Color.FromRgb(0x3B, 0x78, 0xFF);
     private static readonly Color InactiveColor = Color.FromRgb(0x3A, 0x3A, 0x42);
@@ -78,6 +80,7 @@ public class SessionPane : Border
             Background = new SolidColorBrush(Color.FromRgb(0x2A, 0x2A, 0x30)),
             Height = 26,
             Child = headerGrid,
+            ToolTip = "Double-click to maximize / restore",
         };
         DockPanel.SetDock(_header, Dock.Top);
         dock.Children.Add(_header);
@@ -87,7 +90,11 @@ public class SessionPane : Border
 
         session.TitleChanged += _ => _titleText.Text = session.TabTitle;
         session.StateChanged += _ => UpdateStatus();
-        _header.MouseLeftButtonDown += (_, _) => Activated?.Invoke(this);
+        _header.MouseLeftButtonDown += (_, e) =>
+        {
+            Activated?.Invoke(this);
+            if (e.ClickCount == 2) MaximizeToggleRequested?.Invoke(this);
+        };
         PreviewMouseDown += (_, _) => Activated?.Invoke(this);
 
         UpdateStatus();
