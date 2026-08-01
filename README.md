@@ -12,6 +12,9 @@ side-by-side in a grid that automatically resizes every pane to fit as you add m
 - SSH over the standard protocol (via [SSH.NET](https://github.com/sshnet/SSH.NET))
 - Authentication: password, public-key (`.pem`/OpenSSH key + passphrase),
   keyboard-interactive, or agent-fallback
+- If a password (or an encrypted key's passphrase) isn't saved, you're prompted
+  securely at connect time — and re-prompted on rejection — instead of the login
+  simply failing
 - Per-session keepalive interval, connect timeout, TCP_NODELAY
 
 **Multiple sessions, your way**
@@ -20,6 +23,8 @@ side-by-side in a grid that automatically resizes every pane to fit as you add m
   to fit as more are opened (2 → side by side, 4 → 2×2, 9 → 3×3, …)
 - Switch between Tabs and Tiles at any time from the toolbar
 - Duplicate the active session, reconnect, or close individual panes
+- **Broadcast bar** on the right of the toolbar: type a command (or pick one from
+  the common-commands dropdown) and send it to *every* open session at once
 
 **Terminal**
 - Custom VT100 / xterm-256color emulator: colours (16 / 256 / true-colour),

@@ -113,6 +113,38 @@ public partial class MainWindow : Window
         if (_active != null) _ = _active.Session.ReconnectAsync();
     }
 
+    // -------------------- broadcast to all sessions --------------------
+
+    private void Broadcast_Click(object sender, RoutedEventArgs e) => BroadcastCurrent();
+
+    private void Broadcast_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key == System.Windows.Input.Key.Enter)
+        {
+            BroadcastCurrent();
+            e.Handled = true;
+        }
+    }
+
+    private void BroadcastCurrent()
+    {
+        string text = (BroadcastCombo.Text ?? "").TrimEnd('\r', '\n');
+        if (string.IsNullOrEmpty(text)) return;
+        if (_panes.Count == 0)
+        {
+            MessageBox.Show(this, "No open sessions to send to.", "Multi-SSH",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        // Send the command followed by Enter to every open session.
+        foreach (var pane in _panes)
+            pane.Session.SendText(text + "\r");
+
+        // Keep focus/selection handy for repeated sends.
+        BroadcastCombo.SelectedIndex = -1;
+    }
+
     private void Settings_Click(object sender, RoutedEventArgs e)
     {
         var dlg = new SettingsDialog { Owner = this };

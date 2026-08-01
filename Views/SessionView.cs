@@ -90,7 +90,8 @@ public class SessionView : Grid
         // (securely, masked) rather than failing the login.
         if (UsesPassword(_cfg.Auth) && string.IsNullOrEmpty(_cfg.Password))
         {
-            var pw = PromptPassword(null);
+            var pw = PromptSecret($"Password for {_cfg.Username}@{_cfg.Host}",
+                $"Host {_cfg.Host} : {_cfg.Port}", null);
             if (pw == null) { SetStatus("Login cancelled — no password entered"); return; }
             _cfg.Password = pw;
         }
@@ -131,9 +132,24 @@ public class SessionView : Grid
                     return;
                 }
 
-                var pw = PromptPassword($"Authentication failed: {ex.Message}");
+                var pw = PromptSecret($"Password for {_cfg.Username}@{_cfg.Host}",
+                    $"Host {_cfg.Host} : {_cfg.Port}", $"Authentication failed: {ex.Message}");
                 if (pw == null) { SetStatus("Login cancelled"); return; }
                 _cfg.Password = pw;
+            }
+            catch (KeyPassphraseRequiredException ex)
+            {
+                _conn.Dispose();
+                _conn = null;
+
+                if (attempt >= MaxAuthAttempts) { Fail(ex.Message); return; }
+
+                // Show the error only after a wrong attempt (a passphrase was set).
+                string? error = string.IsNullOrEmpty(_cfg.KeyPassphrase) ? null : ex.Message;
+                var pass = PromptSecret("Passphrase for the private key",
+                    _cfg.PrivateKeyPath ?? "", error);
+                if (pass == null) { SetStatus("Login cancelled"); return; }
+                _cfg.KeyPassphrase = pass;
             }
             catch (Exception ex)
             {
@@ -148,12 +164,10 @@ public class SessionView : Grid
     private static bool UsesPassword(AuthMethod m)
         => m is AuthMethod.Password or AuthMethod.KeyboardInteractive or AuthMethod.Agent;
 
-    /// <summary>Show a masked password prompt. Returns null if the user cancels.</summary>
-    private string? PromptPassword(string? error)
+    /// <summary>Show a masked secret prompt (password or passphrase). Null if cancelled.</summary>
+    private string? PromptSecret(string prompt, string target, string? error)
     {
-        var dlg = new PasswordPromptDialog(
-            $"Password for {_cfg.Username}@{_cfg.Host}",
-            $"Host {_cfg.Host} : {_cfg.Port}", error)
+        var dlg = new PasswordPromptDialog(prompt, target, error)
         {
             Owner = Window.GetWindow(this),
         };
@@ -190,6 +204,9 @@ public class SessionView : Grid
     public bool IsConnected => _connected;
 
     public void FocusTerminal() => _term.Focus();
+
+    /// <summary>Send raw text to the remote shell (used by the broadcast bar).</summary>
+    public void SendText(string text) => _conn?.Send(text);
 
     public void Close()
     {
