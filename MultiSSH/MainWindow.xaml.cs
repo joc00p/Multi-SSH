@@ -113,6 +113,12 @@ public partial class MainWindow : Window
         if (_active != null) _ = _active.Session.ReconnectAsync();
     }
 
+    private void Settings_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new SettingsDialog { Owner = this };
+        dlg.ShowDialog();
+    }
+
     private void Tabs_Click(object sender, RoutedEventArgs e) => SetMode(ViewMode.Tabs);
     private void Tiles_Click(object sender, RoutedEventArgs e) => SetMode(ViewMode.Tiles);
 
@@ -131,22 +137,18 @@ public partial class MainWindow : Window
         pane.CloseRequested += ClosePane;
         pane.ReconnectRequested += p => _ = p.Session.ReconnectAsync();
         pane.Activated += SetActive;
-        view.ConnectionClosed += OnSessionClosed;
+        // When the remote shell exits, destroy its window automatically.
+        view.ShellExited += _ => ClosePane(pane);
 
         _panes.Add(pane);
         _active = pane;
         RebuildContent();
     }
 
-    private void OnSessionClosed(SessionView view)
-    {
-        // Leave the pane open so the user can read the final output / reconnect.
-    }
-
     private void ClosePane(SessionPane pane)
     {
+        if (!_panes.Remove(pane)) return; // already closed (idempotent)
         pane.Session.Close();
-        _panes.Remove(pane);
         if (_active == pane) _active = _panes.LastOrDefault();
         RebuildContent();
     }

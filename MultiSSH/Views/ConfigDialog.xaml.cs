@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using Microsoft.Win32;
 using MultiSSH.Models;
+using MultiSSH.Services;
 
 namespace MultiSSH.Views;
 
@@ -19,7 +20,19 @@ public partial class ConfigDialog : Window
         {
             PanelSession, PanelConnection, PanelAuth, PanelTerminal, PanelAppearance, PanelBehaviour
         };
-        Load(existing ?? new SessionConfig());
+        Load(existing ?? NewSessionFromDefaults());
+    }
+
+    /// <summary>A blank session pre-filled with the app-wide defaults (font, scheme).</summary>
+    private static SessionConfig NewSessionFromDefaults()
+    {
+        var app = AppSettings.Current;
+        return new SessionConfig
+        {
+            FontFamily = app.DefaultFontFamily,
+            FontSize = app.DefaultFontSize,
+            ColorScheme = app.DefaultColorScheme,
+        };
     }
 
     private void Load(SessionConfig c)

@@ -16,11 +16,14 @@ public class SshConnection : IDisposable
     private readonly SessionConfig _cfg;
     private SshClient? _client;
     private ShellStream? _shell;
-    private bool _disposed;
+    private Thread? _readThread;
+    private volatile bool _disposed;
 
     public event Action<byte[]>? DataReceived;
     public event Action<string>? StatusChanged;
     public event Action<string>? Closed;
+    /// <summary>Raised once when the remote shell ends (EOF on the channel).</summary>
+    public event Action? ShellExited;
 
     public bool IsConnected => _client?.IsConnected ?? false;
 
@@ -48,14 +51,41 @@ public class SshConnection : IDisposable
             (uint)(cols * 8), (uint)(rows * 16),
             8192, modes);
 
-        _shell.DataReceived += OnShellData;
         _shell.ErrorOccurred += (_, e) => StatusChanged?.Invoke("Shell error: " + e.Exception.Message);
+
+        // Read on a background thread: a blocking Read returns 0 at EOF when the
+        // remote shell exits, which lets us tear the window down automatically.
+        _readThread = new Thread(ReadLoop) { IsBackground = true, Name = "ssh-read" };
+        _readThread.Start();
     }
 
-    private void OnShellData(object? sender, ShellDataEventArgs e)
+    private void ReadLoop()
     {
-        if (e.Data is { Length: > 0 })
-            DataReceived?.Invoke(e.Data);
+        var buf = new byte[8192];
+        var shell = _shell;
+        try
+        {
+            while (!_disposed && shell != null)
+            {
+                int n = shell.Read(buf, 0, buf.Length);
+                if (n <= 0) break; // EOF — the shell has exited
+                var slice = new byte[n];
+                Array.Copy(buf, slice, n);
+                DataReceived?.Invoke(slice);
+            }
+        }
+        catch
+        {
+            // Stream disposed or connection dropped — treated the same as EOF.
+        }
+        finally
+        {
+            if (!_disposed)
+            {
+                StatusChanged?.Invoke("Shell closed");
+                ShellExited?.Invoke();
+            }
+        }
     }
 
     private ConnectionInfo BuildConnectionInfo()
@@ -157,11 +187,7 @@ public class SshConnection : IDisposable
         _disposed = true;
         try
         {
-            if (_shell != null)
-            {
-                _shell.DataReceived -= OnShellData;
-                _shell.Dispose();
-            }
+            _shell?.Dispose();   // unblocks the read loop
             _client?.Disconnect();
             _client?.Dispose();
         }
