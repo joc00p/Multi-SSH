@@ -45,6 +45,15 @@ public partial class MainWindow : Window
     private SessionConfig? SelectedSaved()
         => (SavedList.SelectedItem as ListBoxItem)?.Tag as SessionConfig;
 
+    // Right-clicking a row must select it first, so context-menu actions
+    // (Open/Edit/Delete) always target the row under the cursor — not whatever
+    // happened to be left-click-selected before.
+    private void SavedList_PreviewMouseRightButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        var item = ItemsControl.ContainerFromElement(SavedList, (DependencyObject)e.OriginalSource) as ListBoxItem;
+        if (item != null) item.IsSelected = true;
+    }
+
     private void SavedList_DoubleClick(object sender, RoutedEventArgs e)
     {
         var cfg = SelectedSaved();

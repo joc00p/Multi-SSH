@@ -70,7 +70,8 @@
                 <TextBlock DockPanel.Dock="Bottom" Text="Double-click to open"
                            Foreground="#666" FontSize="10" Margin="10,6,10,10"/>
                 <ListBox x:Name="SavedList" Background="Transparent" BorderThickness="0"
-                         Foreground="White" MouseDoubleClick="SavedList_DoubleClick">
+                         Foreground="White" MouseDoubleClick="SavedList_DoubleClick"
+                         PreviewMouseRightButtonDown="SavedList_PreviewMouseRightButtonDown">
                     <ListBox.ContextMenu>
                         <ContextMenu>
                             <MenuItem Header="Open" Click="MenuOpen_Click"/>
