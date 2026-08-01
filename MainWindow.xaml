@@ -18,16 +18,48 @@
     <DockPanel>
         <!-- Toolbar -->
         <Border DockPanel.Dock="Top" Background="#25252B" Padding="8">
-            <StackPanel Orientation="Horizontal">
-                <Button x:Name="NewBtn" Content="＋ New Session" Style="{StaticResource ToolBtn}" Click="New_Click"/>
-                <Button x:Name="DupBtn" Content="⧉ Duplicate" Style="{StaticResource ToolBtn}" Click="Duplicate_Click"/>
-                <Button x:Name="ReconnectBtn" Content="⟳ Reconnect" Style="{StaticResource ToolBtn}" Click="Reconnect_Click"/>
-                <Button x:Name="SettingsBtn" Content="⚙ Settings" Style="{StaticResource ToolBtn}" Click="Settings_Click"/>
-                <Separator Margin="6,0" Background="#3A3A44"/>
-                <TextBlock Text="View:" Foreground="#AAA" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                <Button x:Name="TabsBtn" Content="▭ Tabs" Style="{StaticResource ToolBtn}" Click="Tabs_Click"/>
-                <Button x:Name="TilesBtn" Content="▦ Tiles" Style="{StaticResource ToolBtn}" Click="Tiles_Click"/>
-            </StackPanel>
+            <DockPanel LastChildFill="False">
+                <!-- Left: session/view controls -->
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+                    <Button x:Name="NewBtn" Content="＋ New Session" Style="{StaticResource ToolBtn}" Click="New_Click"/>
+                    <Button x:Name="DupBtn" Content="⧉ Duplicate" Style="{StaticResource ToolBtn}" Click="Duplicate_Click"/>
+                    <Button x:Name="ReconnectBtn" Content="⟳ Reconnect" Style="{StaticResource ToolBtn}" Click="Reconnect_Click"/>
+                    <Button x:Name="SettingsBtn" Content="⚙ Settings" Style="{StaticResource ToolBtn}" Click="Settings_Click"/>
+                    <Separator Margin="6,0" Background="#3A3A44"/>
+                    <TextBlock Text="View:" Foreground="#AAA" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                    <Button x:Name="TabsBtn" Content="▭ Tabs" Style="{StaticResource ToolBtn}" Click="Tabs_Click"/>
+                    <Button x:Name="TilesBtn" Content="▦ Tiles" Style="{StaticResource ToolBtn}" Click="Tiles_Click"/>
+                </StackPanel>
+
+                <!-- Right: broadcast one command to every open session -->
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+                    <TextBlock Text="Send to all:" Foreground="#AAA" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                    <ComboBox x:Name="BroadcastCombo" Width="240" IsEditable="True" Height="26"
+                              VerticalContentAlignment="Center"
+                              ToolTip="Type a command or pick a common one, then Send to broadcast it to every open session."
+                              KeyDown="Broadcast_KeyDown">
+                        <ComboBoxItem Content="ls -la"/>
+                        <ComboBoxItem Content="pwd"/>
+                        <ComboBoxItem Content="whoami"/>
+                        <ComboBoxItem Content="hostname"/>
+                        <ComboBoxItem Content="uptime"/>
+                        <ComboBoxItem Content="df -h"/>
+                        <ComboBoxItem Content="free -h"/>
+                        <ComboBoxItem Content="ps aux"/>
+                        <ComboBoxItem Content="top -b -n 1"/>
+                        <ComboBoxItem Content="netstat -tulpn"/>
+                        <ComboBoxItem Content="ip a"/>
+                        <ComboBoxItem Content="systemctl --failed"/>
+                        <ComboBoxItem Content="journalctl -n 50 --no-pager"/>
+                        <ComboBoxItem Content="tail -n 50 /var/log/syslog"/>
+                        <ComboBoxItem Content="sudo apt update"/>
+                        <ComboBoxItem Content="cd /var/log &amp;&amp; ls -la"/>
+                        <ComboBoxItem Content="clear"/>
+                    </ComboBox>
+                    <Button x:Name="BroadcastBtn" Content="⇪ Send" Style="{StaticResource ToolBtn}"
+                            Margin="6,0,0,0" Click="Broadcast_Click"/>
+                </StackPanel>
+            </DockPanel>
         </Border>
 
         <!-- Sidebar -->
