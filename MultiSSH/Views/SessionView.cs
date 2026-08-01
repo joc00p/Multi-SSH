@@ -26,6 +26,8 @@ public class SessionView : Grid
 
     public event Action<SessionView>? TitleChanged;
     public event Action<SessionView>? ConnectionClosed;
+    /// <summary>Raised when the remote shell exits — the host destroys the pane.</summary>
+    public event Action<SessionView>? ShellExited;
 
     public SessionView(SessionConfig cfg)
     {
@@ -85,6 +87,11 @@ public class SessionView : Grid
             _connected = false;
             SetStatus(msg);
             Dispatcher.BeginInvoke(() => ConnectionClosed?.Invoke(this));
+        };
+        _conn.ShellExited += () =>
+        {
+            _connected = false;
+            Dispatcher.BeginInvoke(() => ShellExited?.Invoke(this));
         };
 
         try

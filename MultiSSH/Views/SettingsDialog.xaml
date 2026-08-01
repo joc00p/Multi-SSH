@@ -1,0 +1,58 @@
+<Window x:Class="MultiSSH.Views.SettingsDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Multi-SSH — Settings"
+        Height="260" Width="420"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="#F0F0F0"
+        ShowInTaskbar="False">
+    <Grid Margin="14">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="Defaults for new sessions" FontWeight="Bold" Margin="0,0,0,14"/>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="140"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Text="Default font" Grid.Row="0" VerticalAlignment="Center"/>
+            <ComboBox x:Name="FontCombo" Grid.Row="0" Grid.Column="1" Margin="0,4" IsEditable="True"
+                      SelectionChanged="Font_Changed" LostFocus="Font_Changed"/>
+
+            <TextBlock Text="Default font size" Grid.Row="1" VerticalAlignment="Center"/>
+            <TextBox x:Name="FontSizeBox" Grid.Row="1" Grid.Column="1" Margin="0,4"
+                     TextChanged="Font_Changed"/>
+
+            <TextBlock Text="Default colour scheme" Grid.Row="2" VerticalAlignment="Center"/>
+            <ComboBox x:Name="SchemeCombo" Grid.Row="2" Grid.Column="1" Margin="0,4">
+                <ComboBoxItem Content="Campbell"/>
+                <ComboBoxItem Content="PuTTY"/>
+                <ComboBoxItem Content="Solarized Dark"/>
+                <ComboBoxItem Content="Dracula"/>
+            </ComboBox>
+
+            <Border Grid.Row="3" Grid.Column="1" Margin="0,10,0,0" Background="#0C0C0C" Padding="8" CornerRadius="3">
+                <TextBlock x:Name="Preview" Text="user@host:~$ echo preview 1234"
+                           Foreground="#CCCCCC"/>
+            </Border>
+        </Grid>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
+            <Button Content="Save" Width="90" Height="28" Margin="0,0,8,0" IsDefault="True" Click="Save_Click"/>
+            <Button Content="Cancel" Width="90" Height="28" IsCancel="True"/>
+        </StackPanel>
+    </Grid>
+</Window>
