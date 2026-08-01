@@ -54,6 +54,15 @@ public static class SessionStore
             c.KeyPassphrase = Protect(c.KeyPassphrase);
             toWrite.Add(c);
         }
+        // Safety net: keep the previous file as a .bak before overwriting, so an
+        // accidental delete/edit is recoverable from sessions.json.bak.
+        try
+        {
+            if (File.Exists(FilePath))
+                File.Copy(FilePath, FilePath + ".bak", overwrite: true);
+        }
+        catch { /* backup is best-effort */ }
+
         var json = JsonSerializer.Serialize(toWrite, JsonOpts);
         File.WriteAllText(FilePath, json);
     }
