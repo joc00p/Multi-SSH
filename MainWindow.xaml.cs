@@ -250,6 +250,22 @@ public partial class MainWindow : Window
     private FrameworkElement BuildTabHeader(SessionPane pane)
     {
         var panel = new StackPanel { Orientation = Orientation.Horizontal };
+
+        var dot = new System.Windows.Shapes.Ellipse
+        {
+            Width = 9, Height = 9,
+            Margin = new Thickness(0, 0, 6, 0),
+            VerticalAlignment = VerticalAlignment.Center,
+            Fill = new SolidColorBrush(SessionView.DotColor(pane.Session.State)),
+            ToolTip = pane.Session.StatusText,
+        };
+        pane.Session.StateChanged += _ =>
+        {
+            dot.Fill = new SolidColorBrush(SessionView.DotColor(pane.Session.State));
+            dot.ToolTip = pane.Session.StatusText;
+        };
+        panel.Children.Add(dot);
+
         var title = new TextBlock
         {
             Text = pane.Title,

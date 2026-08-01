@@ -9,6 +9,9 @@ using Renci.SshNet.Common;
 
 namespace MultiSSH.Views;
 
+/// <summary>Live connection state, surfaced as a coloured dot in pane/tab headers.</summary>
+public enum ConnectionState { Idle, Connecting, Connected, Disconnected, Failed }
+
 /// <summary>
 /// One live SSH session: a terminal plus a status strip, backed by an
 /// <see cref="SshConnection"/>. Used interchangeably inside tabs or tiles.
@@ -22,14 +25,37 @@ public class SessionView : Grid
     private SshConnection? _conn;
     private bool _connected;
     private bool _pendingConnect = true;
+    private ConnectionState _state = ConnectionState.Idle;
 
     public SessionConfig Config => _cfg;
     public string TabTitle { get; private set; }
+    public ConnectionState State => _state;
+    public string StatusText { get; private set; } = "Idle";
 
     public event Action<SessionView>? TitleChanged;
     public event Action<SessionView>? ConnectionClosed;
     /// <summary>Raised when the remote shell exits — the host destroys the pane.</summary>
     public event Action<SessionView>? ShellExited;
+    /// <summary>Raised when connection state or status text changes (UI thread).</summary>
+    public event Action<SessionView>? StateChanged;
+
+    /// <summary>Header status-dot colour for a given state.</summary>
+    public static Color DotColor(ConnectionState s) => s switch
+    {
+        ConnectionState.Connected => Color.FromRgb(0x16, 0xC6, 0x0C),
+        ConnectionState.Connecting => Color.FromRgb(0xE0, 0xA0, 0x30),
+        ConnectionState.Failed => Color.FromRgb(0xE7, 0x48, 0x56),
+        ConnectionState.Disconnected => Color.FromRgb(0x99, 0x99, 0x99),
+        _ => Color.FromRgb(0x77, 0x77, 0x77),
+    };
+
+    private static Color BarColor(ConnectionState s) => s switch
+    {
+        ConnectionState.Connected => Color.FromRgb(0x1e, 0x3a, 0x1e),
+        ConnectionState.Connecting => Color.FromRgb(0x3a, 0x33, 0x1e),
+        ConnectionState.Failed => Color.FromRgb(0x3a, 0x1e, 0x1e),
+        _ => Color.FromRgb(0x25, 0x25, 0x2b),
+    };
 
     public SessionView(SessionConfig cfg)
     {
@@ -86,37 +112,39 @@ public class SessionView : Grid
         int cols = _term.Buffer.Cols;
         int rows = _term.Buffer.Rows;
 
+        SetState(ConnectionState.Connecting, "Connecting…");
+
         // If this method needs a password and none was saved, ask for one now
         // (securely, masked) rather than failing the login.
         if (UsesPassword(_cfg.Auth) && string.IsNullOrEmpty(_cfg.Password))
         {
             var pw = PromptSecret($"Password for {_cfg.Username}@{_cfg.Host}",
                 $"Host {_cfg.Host} : {_cfg.Port}", null);
-            if (pw == null) { SetStatus("Login cancelled — no password entered"); return; }
+            if (pw == null) { SetState(ConnectionState.Disconnected, "Login cancelled — no password entered"); return; }
             _cfg.Password = pw;
         }
 
         for (int attempt = 1; ; attempt++)
         {
             _conn = new SshConnection(_cfg);
-            _conn.StatusChanged += SetStatus;
+            _conn.StatusChanged += SetStatusText;
             _conn.DataReceived += bytes => _term.Feed(bytes);
             _conn.Closed += msg =>
             {
-                _connected = false;
-                SetStatus(msg);
+                if (_state != ConnectionState.Connecting)
+                    SetState(ConnectionState.Disconnected, msg);
                 Dispatcher.BeginInvoke(() => ConnectionClosed?.Invoke(this));
             };
             _conn.ShellExited += () =>
             {
-                _connected = false;
+                SetState(ConnectionState.Disconnected, "Shell closed");
                 Dispatcher.BeginInvoke(() => ShellExited?.Invoke(this));
             };
 
             try
             {
                 await _conn.ConnectAsync(cols, rows);
-                _connected = true;
+                SetState(ConnectionState.Connected, $"Connected — {_cfg.Username}@{_cfg.Host}");
                 _term.Feed(Enc($"\x1b[32m*** Connected to {_cfg.Host} ***\x1b[0m\r\n"));
                 return;
             }
@@ -134,7 +162,7 @@ public class SessionView : Grid
 
                 var pw = PromptSecret($"Password for {_cfg.Username}@{_cfg.Host}",
                     $"Host {_cfg.Host} : {_cfg.Port}", $"Authentication failed: {ex.Message}");
-                if (pw == null) { SetStatus("Login cancelled"); return; }
+                if (pw == null) { SetState(ConnectionState.Disconnected, "Login cancelled"); return; }
                 _cfg.Password = pw;
             }
             catch (KeyPassphraseRequiredException ex)
@@ -148,7 +176,7 @@ public class SessionView : Grid
                 string? error = string.IsNullOrEmpty(_cfg.KeyPassphrase) ? null : ex.Message;
                 var pass = PromptSecret("Passphrase for the private key",
                     _cfg.PrivateKeyPath ?? "", error);
-                if (pass == null) { SetStatus("Login cancelled"); return; }
+                if (pass == null) { SetState(ConnectionState.Disconnected, "Login cancelled"); return; }
                 _cfg.KeyPassphrase = pass;
             }
             catch (Exception ex)
@@ -176,7 +204,7 @@ public class SessionView : Grid
 
     private void Fail(string msg)
     {
-        SetStatus("Connection failed: " + msg);
+        SetState(ConnectionState.Failed, "Connection failed: " + msg);
         _term.Feed(Enc($"\r\n\x1b[31m*** Connection failed: {msg} ***\x1b[0m\r\n"));
     }
 
@@ -186,18 +214,33 @@ public class SessionView : Grid
     {
         _conn?.Dispose();
         _conn = null;
-        SetStatus("Reconnecting …");
+        SetState(ConnectionState.Connecting, "Reconnecting …");
         await ConnectAsync();
         _term.Focus();
     }
 
-    private void SetStatus(string s)
+    /// <summary>Change connection state (dot colour + status bar) and status text.</summary>
+    private void SetState(ConnectionState state, string text)
     {
+        _state = state;
+        _connected = state == ConnectionState.Connected;
+        StatusText = text;
+        Dispatcher.BeginInvoke(() =>
+        {
+            _status.Text = text;
+            _statusBar.Background = new SolidColorBrush(BarColor(state));
+            StateChanged?.Invoke(this);
+        });
+    }
+
+    /// <summary>Update the status text only, keeping the current state/colour.</summary>
+    private void SetStatusText(string s)
+    {
+        StatusText = s;
         Dispatcher.BeginInvoke(() =>
         {
             _status.Text = s;
-            _statusBar.Background = new SolidColorBrush(
-                _connected ? Color.FromRgb(0x1e, 0x3a, 0x1e) : Color.FromRgb(0x25, 0x25, 0x2b));
+            StateChanged?.Invoke(this);
         });
     }
 
