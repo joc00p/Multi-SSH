@@ -1,9 +1,11 @@
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using MultiSSH.Models;
 using MultiSSH.Services;
 using MultiSSH.Terminal;
+using Renci.SshNet.Common;
 
 namespace MultiSSH.Views;
 
@@ -77,38 +79,94 @@ public class SessionView : Grid
         _term.Focus();
     }
 
+    private const int MaxAuthAttempts = 4;
+
     public async Task ConnectAsync()
     {
-        _conn = new SshConnection(_cfg);
-        _conn.StatusChanged += SetStatus;
-        _conn.DataReceived += bytes => _term.Feed(bytes);
-        _conn.Closed += msg =>
-        {
-            _connected = false;
-            SetStatus(msg);
-            Dispatcher.BeginInvoke(() => ConnectionClosed?.Invoke(this));
-        };
-        _conn.ShellExited += () =>
-        {
-            _connected = false;
-            Dispatcher.BeginInvoke(() => ShellExited?.Invoke(this));
-        };
+        int cols = _term.Buffer.Cols;
+        int rows = _term.Buffer.Rows;
 
-        try
+        // If this method needs a password and none was saved, ask for one now
+        // (securely, masked) rather than failing the login.
+        if (UsesPassword(_cfg.Auth) && string.IsNullOrEmpty(_cfg.Password))
         {
-            int cols = _term.Buffer.Cols;
-            int rows = _term.Buffer.Rows;
-            await _conn.ConnectAsync(cols, rows);
-            _connected = true;
-            _term.Feed(System.Text.Encoding.UTF8.GetBytes($"\x1b[32m*** Connected to {_cfg.Host} ***\x1b[0m\r\n"));
+            var pw = PromptPassword(null);
+            if (pw == null) { SetStatus("Login cancelled — no password entered"); return; }
+            _cfg.Password = pw;
         }
-        catch (Exception ex)
+
+        for (int attempt = 1; ; attempt++)
         {
-            SetStatus("Connection failed: " + ex.Message);
-            _term.Feed(System.Text.Encoding.UTF8.GetBytes(
-                $"\r\n\x1b[31m*** Connection failed: {ex.Message} ***\x1b[0m\r\n"));
+            _conn = new SshConnection(_cfg);
+            _conn.StatusChanged += SetStatus;
+            _conn.DataReceived += bytes => _term.Feed(bytes);
+            _conn.Closed += msg =>
+            {
+                _connected = false;
+                SetStatus(msg);
+                Dispatcher.BeginInvoke(() => ConnectionClosed?.Invoke(this));
+            };
+            _conn.ShellExited += () =>
+            {
+                _connected = false;
+                Dispatcher.BeginInvoke(() => ShellExited?.Invoke(this));
+            };
+
+            try
+            {
+                await _conn.ConnectAsync(cols, rows);
+                _connected = true;
+                _term.Feed(Enc($"\x1b[32m*** Connected to {_cfg.Host} ***\x1b[0m\r\n"));
+                return;
+            }
+            catch (SshAuthenticationException ex)
+            {
+                _conn.Dispose();
+                _conn = null;
+
+                // Re-prompt on rejection (wrong or empty password), up to a limit.
+                if (!UsesPassword(_cfg.Auth) || attempt >= MaxAuthAttempts)
+                {
+                    Fail(ex.Message);
+                    return;
+                }
+
+                var pw = PromptPassword($"Authentication failed: {ex.Message}");
+                if (pw == null) { SetStatus("Login cancelled"); return; }
+                _cfg.Password = pw;
+            }
+            catch (Exception ex)
+            {
+                _conn?.Dispose();
+                _conn = null;
+                Fail(ex.Message);
+                return;
+            }
         }
     }
+
+    private static bool UsesPassword(AuthMethod m)
+        => m is AuthMethod.Password or AuthMethod.KeyboardInteractive or AuthMethod.Agent;
+
+    /// <summary>Show a masked password prompt. Returns null if the user cancels.</summary>
+    private string? PromptPassword(string? error)
+    {
+        var dlg = new PasswordPromptDialog(
+            $"Password for {_cfg.Username}@{_cfg.Host}",
+            $"Host {_cfg.Host} : {_cfg.Port}", error)
+        {
+            Owner = Window.GetWindow(this),
+        };
+        return dlg.ShowDialog() == true ? dlg.Password : null;
+    }
+
+    private void Fail(string msg)
+    {
+        SetStatus("Connection failed: " + msg);
+        _term.Feed(Enc($"\r\n\x1b[31m*** Connection failed: {msg} ***\x1b[0m\r\n"));
+    }
+
+    private static byte[] Enc(string s) => Encoding.UTF8.GetBytes(s);
 
     public async Task ReconnectAsync()
     {
