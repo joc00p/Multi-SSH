@@ -1,0 +1,196 @@
+<Window x:Class="MultiSSH.Views.ConfigDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Multi-SSH — Session Configuration"
+        Height="520" Width="720"
+        WindowStartupLocation="CenterOwner"
+        Background="#F0F0F0"
+        ShowInTaskbar="False">
+    <Grid Margin="10">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="170"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Category list (PuTTY-style) -->
+        <Border Grid.Column="0" Grid.Row="0" BorderBrush="#BBB" BorderThickness="1" Background="White">
+            <ListBox x:Name="CategoryList" BorderThickness="0" SelectedIndex="0"
+                     SelectionChanged="CategoryList_SelectionChanged">
+                <ListBoxItem Content="Session"/>
+                <ListBoxItem Content="Connection"/>
+                <ListBoxItem Content="Authentication"/>
+                <ListBoxItem Content="Terminal"/>
+                <ListBoxItem Content="Appearance"/>
+                <ListBoxItem Content="Behaviour"/>
+            </ListBox>
+        </Border>
+
+        <!-- Panels -->
+        <Border Grid.Column="1" Grid.Row="0" Margin="10,0,0,0" BorderBrush="#BBB"
+                BorderThickness="1" Background="White" Padding="14">
+            <Grid>
+                <!-- Session -->
+                <StackPanel x:Name="PanelSession">
+                    <TextBlock Text="Basic options for your SSH session" FontWeight="Bold" Margin="0,0,0,12"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="120"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="70"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="Host Name (or IP)" VerticalAlignment="Center" Grid.Row="0"/>
+                        <TextBox x:Name="HostBox" Grid.Row="0" Grid.Column="1" Margin="0,4"/>
+                        <TextBlock Text="Port" Grid.Row="0" Grid.Column="2" HorizontalAlignment="Right"
+                                   VerticalAlignment="Center" Margin="0,0,44,0"/>
+                        <TextBox x:Name="PortBox" Grid.Row="0" Grid.Column="2" Width="40"
+                                 HorizontalAlignment="Right" Margin="0,4" Text="22"/>
+
+                        <TextBlock Text="Saved session name" Grid.Row="1" VerticalAlignment="Center"/>
+                        <TextBox x:Name="NameBox" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,4"/>
+                    </Grid>
+                    <TextBlock Margin="0,14,0,4" Text="Connection type: SSH (port 22)" Foreground="#555"/>
+                    <CheckBox x:Name="SaveChk" Content="Save this session to the sidebar" Margin="0,10,0,0" IsChecked="True"/>
+                </StackPanel>
+
+                <!-- Connection -->
+                <StackPanel x:Name="PanelConnection" Visibility="Collapsed">
+                    <TextBlock Text="Options controlling the connection" FontWeight="Bold" Margin="0,0,0,12"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="180"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="Login username" VerticalAlignment="Center" Grid.Row="0"/>
+                        <TextBox x:Name="UserBox" Grid.Row="0" Grid.Column="1" Margin="0,4"/>
+                        <TextBlock Text="Keepalive interval (seconds, 0=off)" Grid.Row="1" VerticalAlignment="Center"/>
+                        <TextBox x:Name="KeepAliveBox" Grid.Row="1" Grid.Column="1" Margin="0,4" Text="30"/>
+                        <TextBlock Text="Connect timeout (seconds)" Grid.Row="2" VerticalAlignment="Center"/>
+                        <TextBox x:Name="TimeoutBox" Grid.Row="2" Grid.Column="1" Margin="0,4" Text="15"/>
+                        <CheckBox x:Name="NoDelayChk" Content="Disable Nagle's algorithm (TCP_NODELAY)"
+                                  Grid.Row="3" Grid.Column="1" Margin="0,8" IsChecked="True"/>
+                    </Grid>
+                </StackPanel>
+
+                <!-- Authentication -->
+                <StackPanel x:Name="PanelAuth" Visibility="Collapsed">
+                    <TextBlock Text="Options controlling SSH authentication" FontWeight="Bold" Margin="0,0,0,12"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="140"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="Method" VerticalAlignment="Center" Grid.Row="0"/>
+                        <ComboBox x:Name="AuthCombo" Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,4"
+                                  SelectionChanged="AuthCombo_SelectionChanged">
+                            <ComboBoxItem Content="Password"/>
+                            <ComboBoxItem Content="Public key (private key file)"/>
+                            <ComboBoxItem Content="Keyboard-interactive"/>
+                            <ComboBoxItem Content="Agent (falls back to password)"/>
+                        </ComboBox>
+
+                        <TextBlock Text="Password" Grid.Row="1" VerticalAlignment="Center"/>
+                        <PasswordBox x:Name="PassBox" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,4"/>
+
+                        <TextBlock Text="Private key file" Grid.Row="2" VerticalAlignment="Center"/>
+                        <TextBox x:Name="KeyPathBox" Grid.Row="2" Grid.Column="1" Margin="0,4"/>
+                        <Button x:Name="BrowseKeyBtn" Content="Browse…" Grid.Row="2" Grid.Column="2"
+                                Margin="6,4,0,4" Padding="8,2" Click="BrowseKey_Click"/>
+
+                        <TextBlock Text="Key passphrase" Grid.Row="3" VerticalAlignment="Center"/>
+                        <PasswordBox x:Name="PassphraseBox" Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,4"/>
+                    </Grid>
+                    <TextBlock Text="Note: passwords are stored encrypted per-Windows-user (DPAPI)."
+                               Foreground="#777" TextWrapping="Wrap" Margin="0,12,0,0"/>
+                </StackPanel>
+
+                <!-- Terminal -->
+                <StackPanel x:Name="PanelTerminal" Visibility="Collapsed">
+                    <TextBlock Text="Options controlling the terminal emulation" FontWeight="Bold" Margin="0,0,0,12"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="180"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="Terminal type string" VerticalAlignment="Center" Grid.Row="0"/>
+                        <TextBox x:Name="TermTypeBox" Grid.Row="0" Grid.Column="1" Margin="0,4" Text="xterm-256color"/>
+                        <TextBlock Text="Initial columns" Grid.Row="1" VerticalAlignment="Center"/>
+                        <TextBox x:Name="ColsBox" Grid.Row="1" Grid.Column="1" Margin="0,4" Text="80"/>
+                        <TextBlock Text="Initial rows" Grid.Row="2" VerticalAlignment="Center"/>
+                        <TextBox x:Name="RowsBox" Grid.Row="2" Grid.Column="1" Margin="0,4" Text="24"/>
+                        <TextBlock Text="Lines of scrollback" Grid.Row="3" VerticalAlignment="Center"/>
+                        <TextBox x:Name="ScrollbackBox" Grid.Row="3" Grid.Column="1" Margin="0,4" Text="2000"/>
+                    </Grid>
+                </StackPanel>
+
+                <!-- Appearance -->
+                <StackPanel x:Name="PanelAppearance" Visibility="Collapsed">
+                    <TextBlock Text="Options controlling font and colours" FontWeight="Bold" Margin="0,0,0,12"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="140"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="Font family" VerticalAlignment="Center" Grid.Row="0"/>
+                        <ComboBox x:Name="FontCombo" Grid.Row="0" Grid.Column="1" Margin="0,4" IsEditable="True">
+                            <ComboBoxItem Content="Consolas"/>
+                            <ComboBoxItem Content="Cascadia Mono"/>
+                            <ComboBoxItem Content="Cascadia Code"/>
+                            <ComboBoxItem Content="Lucida Console"/>
+                            <ComboBoxItem Content="Courier New"/>
+                        </ComboBox>
+                        <TextBlock Text="Font size" VerticalAlignment="Center" Grid.Row="1"/>
+                        <TextBox x:Name="FontSizeBox" Grid.Row="1" Grid.Column="1" Margin="0,4" Text="14"/>
+                        <TextBlock Text="Colour scheme" VerticalAlignment="Center" Grid.Row="2"/>
+                        <ComboBox x:Name="SchemeCombo" Grid.Row="2" Grid.Column="1" Margin="0,4">
+                            <ComboBoxItem Content="Campbell"/>
+                            <ComboBoxItem Content="PuTTY"/>
+                            <ComboBoxItem Content="Solarized Dark"/>
+                            <ComboBoxItem Content="Dracula"/>
+                        </ComboBox>
+                    </Grid>
+                </StackPanel>
+
+                <!-- Behaviour -->
+                <StackPanel x:Name="PanelBehaviour" Visibility="Collapsed">
+                    <TextBlock Text="Options controlling terminal behaviour" FontWeight="Bold" Margin="0,0,0,12"/>
+                    <CheckBox x:Name="BellChk" Content="Enable terminal bell" Margin="0,4" IsChecked="True"/>
+                    <CheckBox x:Name="CopySelChk" Content="Copy to clipboard on selection (PuTTY style)" Margin="0,4" IsChecked="True"/>
+                    <CheckBox x:Name="RightPasteChk" Content="Paste on right-click" Margin="0,4" IsChecked="True"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Buttons -->
+        <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+            <Button x:Name="ConnectBtn" Content="Open" Width="90" Height="28" Margin="0,0,8,0"
+                    IsDefault="True" Click="Connect_Click"/>
+            <Button Content="Cancel" Width="90" Height="28" IsCancel="True"/>
+        </StackPanel>
+    </Grid>
+</Window>
