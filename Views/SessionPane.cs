@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Shapes;
 
 namespace MultiSSH.Views;
 
@@ -17,6 +18,7 @@ public class SessionPane : Border
 
     private readonly Border _header;
     private readonly TextBlock _titleText;
+    private readonly Ellipse _statusDot;
     private bool _active;
 
     public event Action<SessionPane>? CloseRequested;
@@ -34,12 +36,21 @@ public class SessionPane : Border
 
         var dock = new DockPanel { LastChildFill = true };
 
+        _statusDot = new Ellipse
+        {
+            Width = 9,
+            Height = 9,
+            Margin = new Thickness(8, 0, 0, 0),
+            VerticalAlignment = VerticalAlignment.Center,
+            Fill = new SolidColorBrush(SessionView.DotColor(session.State)),
+        };
+
         _titleText = new TextBlock
         {
             Text = session.TabTitle,
             Foreground = Brushes.White,
             VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(8, 0, 0, 0),
+            Margin = new Thickness(6, 0, 0, 0),
             TextTrimming = TextTrimming.CharacterEllipsis,
         };
 
@@ -53,9 +64,14 @@ public class SessionPane : Border
         btns.Children.Add(closeBtn);
         DockPanel.SetDock(btns, Dock.Right);
 
+        // Left side of the header: status dot + title.
+        var left = new StackPanel { Orientation = Orientation.Horizontal };
+        left.Children.Add(_statusDot);
+        left.Children.Add(_titleText);
+
         var headerGrid = new DockPanel();
         headerGrid.Children.Add(btns);
-        headerGrid.Children.Add(_titleText);
+        headerGrid.Children.Add(left);
 
         _header = new Border
         {
@@ -70,8 +86,18 @@ public class SessionPane : Border
         Child = dock;
 
         session.TitleChanged += _ => _titleText.Text = session.TabTitle;
+        session.StateChanged += _ => UpdateStatus();
         _header.MouseLeftButtonDown += (_, _) => Activated?.Invoke(this);
         PreviewMouseDown += (_, _) => Activated?.Invoke(this);
+
+        UpdateStatus();
+    }
+
+    private void UpdateStatus()
+    {
+        _statusDot.Fill = new SolidColorBrush(SessionView.DotColor(Session.State));
+        _statusDot.ToolTip = Session.StatusText;
+        _titleText.ToolTip = Session.StatusText;
     }
 
     public bool HeaderVisible
