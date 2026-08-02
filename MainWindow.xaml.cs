@@ -339,6 +339,22 @@ public partial class MainWindow : Window
 
     private void OnClosing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
+        if (_panes.Count > 0)
+        {
+            var result = MessageBox.Show(
+                $"You have {_panes.Count} open session{(_panes.Count == 1 ? "" : "s")}. Close them all and quit?",
+                "Quit Multi-SSH",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question,
+                MessageBoxResult.No);
+
+            if (result != MessageBoxResult.Yes)
+            {
+                e.Cancel = true;
+                return;
+            }
+        }
+
         foreach (var p in _panes) p.Session.Close();
     }
 }
