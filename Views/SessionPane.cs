@@ -19,7 +19,6 @@ public class SessionPane : Border
     private readonly Border _header;
     private readonly TextBlock _titleText;
     private readonly Ellipse _statusDot;
-    private readonly Button _maxBtn;
     private bool _active;
 
     public event Action<SessionPane>? CloseRequested;
@@ -59,14 +58,11 @@ public class SessionPane : Border
 
         var reconnectBtn = MakeHeaderButton("⟳", "Reconnect");
         reconnectBtn.Click += (_, _) => ReconnectRequested?.Invoke(this);
-        _maxBtn = MakeHeaderButton("⤢", "Enlarge / restore this session");
-        _maxBtn.Click += (_, _) => MaximizeToggleRequested?.Invoke(this);
         var closeBtn = MakeHeaderButton("✕", "Close");
         closeBtn.Click += (_, _) => CloseRequested?.Invoke(this);
 
         var btns = new StackPanel { Orientation = Orientation.Horizontal };
         btns.Children.Add(reconnectBtn);
-        btns.Children.Add(_maxBtn);
         btns.Children.Add(closeBtn);
         DockPanel.SetDock(btns, Dock.Right);
 
@@ -111,13 +107,6 @@ public class SessionPane : Border
         _statusDot.Fill = new SolidColorBrush(SessionView.DotColor(Session.State));
         _statusDot.ToolTip = Session.StatusText;
         _titleText.ToolTip = Session.StatusText;
-    }
-
-    /// <summary>Reflect whether this pane is currently enlarged (updates the button glyph).</summary>
-    public void SetMaximizedGlyph(bool maximized)
-    {
-        _maxBtn.Content = maximized ? "⤡" : "⤢";
-        _maxBtn.ToolTip = maximized ? "Restore this session" : "Enlarge / restore this session";
     }
 
     public bool HeaderVisible
