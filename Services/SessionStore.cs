@@ -38,6 +38,10 @@ public static class SessionStore
         }
         catch
         {
+            // The file exists but couldn't be parsed. Preserve it (never discard
+            // silently) so it can be recovered, then start empty.
+            try { if (File.Exists(FilePath)) File.Copy(FilePath, FilePath + ".corrupt", overwrite: true); }
+            catch { /* best-effort */ }
             return new();
         }
     }
@@ -54,17 +58,17 @@ public static class SessionStore
             c.KeyPassphrase = Protect(c.KeyPassphrase);
             toWrite.Add(c);
         }
-        // Safety net: keep the previous file as a .bak before overwriting, so an
-        // accidental delete/edit is recoverable from sessions.json.bak.
-        try
-        {
-            if (File.Exists(FilePath))
-                File.Copy(FilePath, FilePath + ".bak", overwrite: true);
-        }
-        catch { /* backup is best-effort */ }
-
         var json = JsonSerializer.Serialize(toWrite, JsonOpts);
-        File.WriteAllText(FilePath, json);
+
+        // Atomic write: serialize to a temp file, then replace. File.Replace swaps
+        // it in atomically and keeps the previous version as sessions.json.bak, so
+        // a crash mid-write can never truncate or lose the real file.
+        var tmp = FilePath + ".tmp";
+        File.WriteAllText(tmp, json);
+        if (File.Exists(FilePath))
+            File.Replace(tmp, FilePath, FilePath + ".bak");
+        else
+            File.Move(tmp, FilePath);
     }
 
     private const string Marker = "dpapi:";
