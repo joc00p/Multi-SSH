@@ -18,6 +18,10 @@ public partial class MainWindow : Window
     private SessionPane? _active;
     private SessionPane? _maximized;
 
+    // Unsubscribe actions for the current tab strip's per-session event handlers.
+    // Flushed on every RebuildContent so tab headers don't leak handlers/visuals.
+    private readonly List<Action> _tabHeaderCleanup = new();
+
     public MainWindow()
     {
         InitializeComponent();
@@ -215,6 +219,12 @@ public partial class MainWindow : Window
 
     private void RebuildContent()
     {
+        // Remove the previous tab strip's per-session handlers before rebuilding, so
+        // a pane's StateChanged/TitleChanged don't accumulate a handler (and pin a
+        // discarded TabControl) on every open/close/mode-switch/maximize.
+        foreach (var cleanup in _tabHeaderCleanup) cleanup();
+        _tabHeaderCleanup.Clear();
+
         // Detach everything first so no pane has two parents.
         foreach (var p in _panes) p.DetachFromParent();
         ContentHost.Children.Clear();
@@ -282,11 +292,6 @@ public partial class MainWindow : Window
             Fill = new SolidColorBrush(SessionView.DotColor(pane.Session.State)),
             ToolTip = pane.Session.StatusText,
         };
-        pane.Session.StateChanged += _ =>
-        {
-            dot.Fill = new SolidColorBrush(SessionView.DotColor(pane.Session.State));
-            dot.ToolTip = pane.Session.StatusText;
-        };
         panel.Children.Add(dot);
 
         var title = new TextBlock
@@ -296,7 +301,23 @@ public partial class MainWindow : Window
             MaxWidth = 160,
             TextTrimming = TextTrimming.CharacterEllipsis,
         };
-        pane.Session.TitleChanged += _ => title.Text = pane.Title;
+
+        // Named handlers so they can be removed when this tab strip is torn down.
+        // (RebuildContent flushes _tabHeaderCleanup before building the next strip.)
+        void OnState(SessionView _)
+        {
+            dot.Fill = new SolidColorBrush(SessionView.DotColor(pane.Session.State));
+            dot.ToolTip = pane.Session.StatusText;
+        }
+        void OnTitle(SessionView _) => title.Text = pane.Title;
+        pane.Session.StateChanged += OnState;
+        pane.Session.TitleChanged += OnTitle;
+        _tabHeaderCleanup.Add(() =>
+        {
+            pane.Session.StateChanged -= OnState;
+            pane.Session.TitleChanged -= OnTitle;
+        });
+
         var close = new Button
         {
             Content = "✕",
@@ -355,6 +376,8 @@ public partial class MainWindow : Window
             }
         }
 
-        foreach (var p in _panes) p.Session.Close();
+        // Close connections without blocking the UI thread: a wedged socket in
+        // Disconnect() must not hang the quit. Teardown is best-effort from here.
+        foreach (var p in _panes) p.Session.CloseAsync();
     }
 }

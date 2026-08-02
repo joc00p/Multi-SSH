@@ -213,6 +213,14 @@ public class SshConnection : IDisposable
             _client?.Dispose();
         }
         catch { /* ignore teardown errors */ }
+        finally
+        {
+            // Null the handles so any late Send/Resize/IsConnected call no-ops
+            // cleanly instead of touching a disposed stream. ReadLoop keeps its own
+            // local reference to the shell, so this doesn't disturb it.
+            _shell = null;
+            _client = null;
+        }
         Closed?.Invoke("Disconnected");
     }
 }

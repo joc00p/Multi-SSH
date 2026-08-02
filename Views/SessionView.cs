@@ -25,6 +25,7 @@ public class SessionView : Grid
     private SshConnection? _conn;
     private bool _connected;
     private bool _pendingConnect = true;
+    private bool _connecting;   // guards against overlapping connect/reconnect attempts
     private ConnectionState _state = ConnectionState.Idle;
 
     public SessionConfig Config => _cfg;
@@ -111,6 +112,14 @@ public class SessionView : Grid
     private const int MaxAuthAttempts = 4;
 
     public async Task ConnectAsync()
+    {
+        if (_connecting) return;   // a connect attempt is already in flight
+        _connecting = true;
+        try { await ConnectCoreAsync(); }
+        finally { _connecting = false; }
+    }
+
+    private async Task ConnectCoreAsync()
     {
         int cols = _term.Buffer.Cols;
         int rows = _term.Buffer.Rows;
@@ -215,6 +224,7 @@ public class SessionView : Grid
 
     public async Task ReconnectAsync()
     {
+        if (_connecting) return;   // don't interrupt/overwrite an in-flight connect
         _conn?.Dispose();
         _conn = null;
         SetState(ConnectionState.Connecting, "Reconnecting …");
@@ -259,5 +269,19 @@ public class SessionView : Grid
         _term.Shutdown();
         _conn?.Dispose();
         _conn = null;
+    }
+
+    /// <summary>
+    /// Like <see cref="Close"/>, but tears the SSH connection down on a background
+    /// thread so a wedged socket can't block the caller (used on app shutdown).
+    /// The UI timers are still stopped synchronously on the calling (UI) thread.
+    /// </summary>
+    public void CloseAsync()
+    {
+        _term.Shutdown();
+        var conn = _conn;
+        _conn = null;
+        if (conn != null)
+            Task.Run(() => { try { conn.Dispose(); } catch { /* best effort */ } });
     }
 }

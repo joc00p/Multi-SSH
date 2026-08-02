@@ -329,10 +329,18 @@ public class TerminalBuffer
         var sb = new System.Text.StringBuilder();
         int totalHistory = includeScrollback ? _scrollback.Count : 0;
 
+        // Selection coordinates are captured at mouse-time and may be stale by now
+        // (e.g. scrollback trimmed as new output arrived while dragging). Clamp so
+        // we never index past the current buffer and crash the UI thread.
+        int maxRow = totalHistory + Rows - 1;
+        startRow = Math.Clamp(startRow, 0, maxRow);
+        endRow = Math.Clamp(endRow, 0, maxRow);
+        if (endRow < startRow) return "";
+
         Cell[] RowAt(int idx)
         {
             if (idx < totalHistory) return _scrollback[idx];
-            return _grid[idx - totalHistory];
+            return _grid[Math.Clamp(idx - totalHistory, 0, Rows - 1)];
         }
 
         for (int r = startRow; r <= endRow; r++)
