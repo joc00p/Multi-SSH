@@ -134,7 +134,21 @@
                             <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
                         <TextBlock Text="Terminal type string" VerticalAlignment="Center" Grid.Row="0"/>
-                        <TextBox x:Name="TermTypeBox" Grid.Row="0" Grid.Column="1" Margin="0,4" Text="xterm-256color"/>
+                        <ComboBox x:Name="TermTypeBox" Grid.Row="0" Grid.Column="1" Margin="0,4" IsEditable="True" Text="xterm-256color">
+                            <ComboBoxItem Content="xterm-256color"/>
+                            <ComboBoxItem Content="xterm"/>
+                            <ComboBoxItem Content="xterm-color"/>
+                            <ComboBoxItem Content="vt100"/>
+                            <ComboBoxItem Content="vt220"/>
+                            <ComboBoxItem Content="ansi"/>
+                            <ComboBoxItem Content="linux"/>
+                            <ComboBoxItem Content="screen"/>
+                            <ComboBoxItem Content="screen-256color"/>
+                            <ComboBoxItem Content="tmux-256color"/>
+                            <ComboBoxItem Content="putty"/>
+                            <ComboBoxItem Content="putty-256color"/>
+                            <ComboBoxItem Content="dumb"/>
+                        </ComboBox>
                         <TextBlock Text="Initial columns" Grid.Row="1" VerticalAlignment="Center"/>
                         <TextBox x:Name="ColsBox" Grid.Row="1" Grid.Column="1" Margin="0,4" Text="80"/>
                         <TextBlock Text="Initial rows" Grid.Row="2" VerticalAlignment="Center"/>
