@@ -232,8 +232,9 @@ public partial class MainWindow : Window
 
         if (_maximized != null)
         {
-            // One pane fills the whole area; double-click its header to restore.
+            // One session fills the tiled area; double-click again to restore.
             _maximized.HeaderVisible = true;
+            _maximized.SetMaximizedGlyph(true);
             ContentHost.Children.Add(_maximized);
             HighlightModeButton();
             SetActive(_maximized);
@@ -324,6 +325,7 @@ public partial class MainWindow : Window
         foreach (var pane in _panes)
         {
             pane.HeaderVisible = true;
+            pane.SetMaximizedGlyph(false);
             grid.Children.Add(pane);
         }
         ContentHost.Children.Add(grid);
