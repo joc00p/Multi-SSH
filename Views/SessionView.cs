@@ -38,6 +38,8 @@ public class SessionView : Grid
     public event Action<SessionView>? ShellExited;
     /// <summary>Raised when connection state or status text changes (UI thread).</summary>
     public event Action<SessionView>? StateChanged;
+    /// <summary>Raised on a terminal double-click — used to enlarge/restore this session.</summary>
+    public event Action<SessionView>? DoubleClicked;
 
     /// <summary>Header status-dot colour for a given state.</summary>
     public static Color DotColor(ConnectionState s) => s switch
@@ -68,6 +70,7 @@ public class SessionView : Grid
         _term = new TerminalControl(cfg);
         _term.Input += bytes => _conn?.Send(bytes);
         _term.GridResized += (cols, rows) => _conn?.Resize(cols, rows);
+        _term.DoubleClicked += () => DoubleClicked?.Invoke(this);
         _term.TitleChanged += t =>
         {
             TabTitle = string.IsNullOrWhiteSpace(t) ? cfg.Display : t;

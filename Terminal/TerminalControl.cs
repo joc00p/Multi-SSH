@@ -44,6 +44,8 @@ public class TerminalControl : Control
     public event Action<string>? TitleChanged;
     /// <summary>Raised when the visible grid size changes (cols, rows).</summary>
     public event Action<int, int>? GridResized;
+    /// <summary>Raised on a left double-click (used to maximize/restore the pane).</summary>
+    public event Action? DoubleClicked;
 
     private string _lastTitle = "";
 
@@ -318,6 +320,19 @@ public class TerminalControl : Control
     protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
     {
         Focus();
+
+        // Double-click anywhere in the terminal enlarges/restores this session.
+        if (e.ClickCount == 2)
+        {
+            _selecting = false;
+            if (IsMouseCaptured) ReleaseMouseCapture();
+            _selStart = _selEnd = null;
+            _dirty = true;
+            DoubleClicked?.Invoke();
+            e.Handled = true;
+            return;
+        }
+
         _selecting = true;
         var cell = PointToCell(e.GetPosition(this));
         _selStart = cell; _selEnd = cell;
