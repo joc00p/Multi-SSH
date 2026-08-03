@@ -49,6 +49,7 @@ public partial class ConfigDialog : Window
 
     private void Load(SessionConfig c)
     {
+        KindCombo.SelectedIndex = (int)c.Kind;
         HostBox.Text = c.Host;
         PortBox.Text = c.Port.ToString();
         NameBox.Text = c.Name;
@@ -72,6 +73,31 @@ public partial class ConfigDialog : Window
         CopySelChk.IsChecked = c.CopyOnSelect;
         RightPasteChk.IsChecked = c.PasteOnRightClick;
         UpdateAuthFieldStates();
+        UpdateKindFieldStates();
+    }
+
+    private SessionKind SelectedKind => (SessionKind)Math.Max(0, KindCombo.SelectedIndex);
+
+    private void KindCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        => UpdateKindFieldStates();
+
+    /// <summary>
+    /// A local shell has no host, port, credentials or connection tuning, so
+    /// grey those out rather than pretending they apply.
+    /// </summary>
+    private void UpdateKindFieldStates()
+    {
+        if (HostBox == null) return;   // still initialising
+        bool ssh = SelectedKind == SessionKind.Ssh;
+
+        HostBox.IsEnabled = PortBox.IsEnabled = ssh;
+        HostLabel.IsEnabled = PortLabel.IsEnabled = ssh;
+        PanelConnection.IsEnabled = PanelAuth.IsEnabled = ssh;
+
+        KindHint.Text = ssh
+            ? "Connection type: SSH (port 22)"
+            : $"Connection type: local {(SelectedKind == SessionKind.Cmd ? "Command Prompt" : "PowerShell")} "
+              + "— runs on this PC, no host or login needed.";
     }
 
     private static void SelectComboByContent(ComboBox combo, string content)
@@ -116,7 +142,8 @@ public partial class ConfigDialog : Window
 
     private void Connect_Click(object sender, RoutedEventArgs e)
     {
-        if (string.IsNullOrWhiteSpace(HostBox.Text))
+        var kind = SelectedKind;
+        if (kind == SessionKind.Ssh && string.IsNullOrWhiteSpace(HostBox.Text))
         {
             MessageBox.Show(this, "Please enter a host name or IP address.", "Multi-SSH",
                 MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -125,6 +152,7 @@ public partial class ConfigDialog : Window
 
         var c = new SessionConfig
         {
+            Kind = kind,
             Host = HostBox.Text.Trim(),
             Name = NameBox.Text.Trim(),
             Username = UserBox.Text.Trim(),

@@ -11,7 +11,7 @@ namespace MultiSSH.Services;
 /// Raises <see cref="DataReceived"/> as bytes arrive; write user keystrokes
 /// with <see cref="Send"/>.
 /// </summary>
-public class SshConnection : IDisposable
+public class SshConnection : ITerminalBackend
 {
     private readonly SessionConfig _cfg;
     private SshClient? _client;

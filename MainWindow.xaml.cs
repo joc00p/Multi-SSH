@@ -565,7 +565,7 @@ public partial class MainWindow : Window
         if (dlg.ShowDialog() == true)
         {
             var cfg = dlg.Result;
-            if (!string.IsNullOrWhiteSpace(cfg.Host))
+            if (cfg.IsLocal || !string.IsNullOrWhiteSpace(cfg.Host))
             {
                 _saved.Add(cfg.Clone());
                 PersistSaved();
