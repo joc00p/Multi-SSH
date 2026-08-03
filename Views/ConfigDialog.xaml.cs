@@ -83,11 +83,11 @@ public partial class ConfigDialog : Window
 
     private void UpdateAuthFieldStates()
     {
+        // Keep every auth field usable regardless of the selected method, so a
+        // key file, passphrase, or password can always be entered or browsed to.
         if (PassBox == null) return;
-        var method = (AuthMethod)Math.Max(0, AuthCombo.SelectedIndex);
-        bool key = method == AuthMethod.PublicKey;
-        KeyPathBox.IsEnabled = BrowseKeyBtn.IsEnabled = PassphraseBox.IsEnabled = key;
-        PassBox.IsEnabled = method is AuthMethod.Password or AuthMethod.KeyboardInteractive or AuthMethod.Agent;
+        KeyPathBox.IsEnabled = BrowseKeyBtn.IsEnabled = PassphraseBox.IsEnabled = true;
+        PassBox.IsEnabled = true;
     }
 
     private void BrowseKey_Click(object sender, RoutedEventArgs e)
