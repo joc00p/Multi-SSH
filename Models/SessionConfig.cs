@@ -97,6 +97,19 @@ public class SessionConfig
         _ => "SSH",
     };
 
+    /// <summary>Short type badge shown in headers (matches the config dialog icons).</summary>
+    public static string KindBadge(SessionKind kind) => kind switch
+    {
+        SessionKind.PowerShell => "PS",
+        SessionKind.Cmd => ">_",
+        SessionKind.Bash => "$",
+        SessionKind.Wsl => "🐧",
+        _ => "SSH",
+    };
+
+    [JsonIgnore]
+    public string KindBadgeText => KindBadge(Kind);
+
     [JsonIgnore]
     public string Display => !string.IsNullOrWhiteSpace(Name) ? Name
         : IsLocal ? LocalShellName

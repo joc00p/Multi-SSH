@@ -52,6 +52,16 @@ public class SessionView : Grid
         _ => Color.FromRgb(0x77, 0x77, 0x77),
     };
 
+    /// <summary>Connection-type "ball" colour shown before the status dot.</summary>
+    public static Color KindColor(SessionKind k) => k switch
+    {
+        SessionKind.PowerShell => Color.FromRgb(0x24, 0x72, 0xC8), // blue ball
+        SessionKind.Cmd => Color.FromRgb(0x9A, 0x9A, 0x9A),        // gray
+        SessionKind.Bash => Color.FromRgb(0x4E, 0xAA, 0x25),       // green
+        SessionKind.Wsl => Color.FromRgb(0xE9, 0x54, 0x20),        // ubuntu orange
+        _ => Color.FromRgb(0x3A, 0x96, 0xDD),                       // SSH: cyan
+    };
+
     private static Color BarColor(ConnectionState s) => s switch
     {
         ConnectionState.Connected => Color.FromRgb(0x1e, 0x3a, 0x1e),
