@@ -231,6 +231,12 @@ public partial class MainWindow : Window
         dlg.ShowDialog();
     }
 
+    private void HotKeys_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new HotKeysDialog { Owner = this };
+        dlg.ShowDialog();
+    }
+
     private void Tabs_Click(object sender, RoutedEventArgs e) => SetMode(ViewMode.Tabs);
     private void Tiles_Click(object sender, RoutedEventArgs e) => SetMode(ViewMode.Tiles);
 
