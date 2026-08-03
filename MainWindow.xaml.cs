@@ -608,7 +608,7 @@ public partial class MainWindow : Window
     private void StartRecordingAll()
     {
         _recording = true;
-        var folder = Recorder.DefaultFolder;
+        var folder = AppSettings.Current.EffectiveRecordingsFolder;
         foreach (var p in _panes) p.Session.StartRecording(folder);
 
         RecordLabel.Text = "Recording";
@@ -707,7 +707,7 @@ public partial class MainWindow : Window
         view.ShellExited += _ => ClosePane(pane);
 
         // If a recording is in progress, capture this new session too.
-        if (_recording) view.StartRecording(Recorder.DefaultFolder);
+        if (_recording) view.StartRecording(AppSettings.Current.EffectiveRecordingsFolder);
 
         _panes.Add(pane);
         _active = pane;

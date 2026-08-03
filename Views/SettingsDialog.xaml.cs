@@ -1,7 +1,9 @@
 using System.Globalization;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using Microsoft.Win32;
 using MultiSSH.Services;
 
 namespace MultiSSH.Views;
@@ -17,7 +19,18 @@ public partial class SettingsDialog : Window
         FontCombo.Text = s.DefaultFontFamily;
         FontSizeBox.Text = s.DefaultFontSize.ToString("0.#");
         SelectScheme(s.DefaultColorScheme);
+        RecordFolderBox.Text = s.RecordingsFolder;
         UpdatePreview();
+    }
+
+    private void BrowseLog_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new OpenFolderDialog { Title = "Select recordings folder" };
+        var current = string.IsNullOrWhiteSpace(RecordFolderBox.Text)
+            ? AppSettings.Current.EffectiveRecordingsFolder : RecordFolderBox.Text;
+        if (Directory.Exists(current)) dlg.InitialDirectory = current;
+        if (dlg.ShowDialog(this) == true)
+            RecordFolderBox.Text = dlg.FolderName;
     }
 
     private void PopulateFonts()
@@ -57,12 +70,13 @@ public partial class SettingsDialog : Window
 
     private void Save_Click(object sender, RoutedEventArgs e)
     {
-        var s = new AppSettings
-        {
-            DefaultFontFamily = string.IsNullOrWhiteSpace(FontCombo.Text) ? "Consolas" : FontCombo.Text.Trim(),
-            DefaultFontSize = double.TryParse(FontSizeBox.Text, out var sz) && sz > 0 ? sz : 14,
-            DefaultColorScheme = (SchemeCombo.SelectedItem as ComboBoxItem)?.Content as string ?? "Campbell",
-        };
+        // Mutate the existing settings so hot keys, session folders, dock state, etc.
+        // are preserved (never replace the whole object).
+        var s = AppSettings.Current;
+        s.DefaultFontFamily = string.IsNullOrWhiteSpace(FontCombo.Text) ? "Consolas" : FontCombo.Text.Trim();
+        s.DefaultFontSize = double.TryParse(FontSizeBox.Text, out var sz) && sz > 0 ? sz : 14;
+        s.DefaultColorScheme = (SchemeCombo.SelectedItem as ComboBoxItem)?.Content as string ?? "Campbell";
+        s.RecordingsFolder = RecordFolderBox.Text.Trim();
         s.Save();
         DialogResult = true;
     }
