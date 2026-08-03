@@ -173,7 +173,9 @@
                                         Background="Transparent" BorderThickness="0" Foreground="#D06060"
                                         Focusable="False"
                                         Cursor="Hand" ToolTip="Remove this connection" Click="RemoveConn_Click"/>
-                                <TextBlock DockPanel.Dock="Left" Text="🖥" Margin="0,0,4,0"/>
+                                <Ellipse DockPanel.Dock="Left" Width="10" Height="10" Margin="0,0,6,0"
+                                         VerticalAlignment="Center"
+                                         Fill="{Binding KindBrush}" ToolTip="{Binding KindTip}"/>
                                 <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
                             </DockPanel>
                         </DataTemplate>

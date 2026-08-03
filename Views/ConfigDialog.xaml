@@ -52,17 +52,26 @@
                     <!-- Header + one-click shortcuts for each supported session type -->
                     <DockPanel Margin="0,0,0,12">
                         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                            <Button x:Name="IconSsh" Tag="0" Content="SSH" FontSize="10"
-                                    Style="{StaticResource KindIcon}"
-                                    ToolTip="SSH (remote host)" Click="KindIcon_Click"/>
-                            <Button x:Name="IconPs" Tag="1" Content="PS" Style="{StaticResource KindIcon}"
-                                    ToolTip="Local — PowerShell" Click="KindIcon_Click"/>
-                            <Button x:Name="IconCmd" Tag="2" Content="&gt;_" Style="{StaticResource KindIcon}"
-                                    ToolTip="Local — Command Prompt" Click="KindIcon_Click"/>
-                            <Button x:Name="IconBash" Tag="3" Content="$" Style="{StaticResource KindIcon}"
-                                    ToolTip="Local — Bash (Git for Windows)" Click="KindIcon_Click"/>
-                            <Button x:Name="IconWsl" Tag="4" Content="🐧" Style="{StaticResource KindIcon}"
-                                    ToolTip="Local — WSL" Click="KindIcon_Click"/>
+                            <Button x:Name="IconSsh" Tag="0" Style="{StaticResource KindIcon}"
+                                    ToolTip="SSH (remote host)" Click="KindIcon_Click">
+                                <Ellipse Width="12" Height="12" Fill="#3A96DD"/>
+                            </Button>
+                            <Button x:Name="IconPs" Tag="1" Style="{StaticResource KindIcon}"
+                                    ToolTip="Local — PowerShell" Click="KindIcon_Click">
+                                <Ellipse Width="12" Height="12" Fill="#2472C8"/>
+                            </Button>
+                            <Button x:Name="IconCmd" Tag="2" Style="{StaticResource KindIcon}"
+                                    ToolTip="Local — Command Prompt" Click="KindIcon_Click">
+                                <Ellipse Width="12" Height="12" Fill="#9A9A9A"/>
+                            </Button>
+                            <Button x:Name="IconBash" Tag="3" Style="{StaticResource KindIcon}"
+                                    ToolTip="Local — Bash (Git for Windows)" Click="KindIcon_Click">
+                                <Ellipse Width="12" Height="12" Fill="#4EAA25"/>
+                            </Button>
+                            <Button x:Name="IconWsl" Tag="4" Style="{StaticResource KindIcon}"
+                                    ToolTip="Local — WSL" Click="KindIcon_Click">
+                                <Ellipse Width="12" Height="12" Fill="#E95420"/>
+                            </Button>
                         </StackPanel>
                         <TextBlock Text="Basic options for your session" FontWeight="Bold"
                                    VerticalAlignment="Center"/>
