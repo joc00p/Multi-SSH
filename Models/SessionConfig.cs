@@ -18,7 +18,11 @@ public enum SessionKind
     /// <summary>A local Windows PowerShell console on this machine.</summary>
     PowerShell,
     /// <summary>A local cmd.exe console on this machine.</summary>
-    Cmd
+    Cmd,
+    /// <summary>A local bash console on this machine (Git for Windows).</summary>
+    Bash,
+    /// <summary>A local WSL shell (wsl.exe — the default distribution).</summary>
+    Wsl
 }
 
 /// <summary>
@@ -81,7 +85,17 @@ public class SessionConfig
 
     /// <summary>Friendly name of the local shell, e.g. "PowerShell".</summary>
     [JsonIgnore]
-    public string LocalShellName => Kind == SessionKind.Cmd ? "Command Prompt" : "PowerShell";
+    public string LocalShellName => KindName(Kind);
+
+    /// <summary>Display name for a session kind.</summary>
+    public static string KindName(SessionKind kind) => kind switch
+    {
+        SessionKind.Cmd => "Command Prompt",
+        SessionKind.Bash => "Bash",
+        SessionKind.Wsl => "WSL",
+        SessionKind.PowerShell => "PowerShell",
+        _ => "SSH",
+    };
 
     [JsonIgnore]
     public string Display => !string.IsNullOrWhiteSpace(Name) ? Name
