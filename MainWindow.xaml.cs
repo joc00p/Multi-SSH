@@ -1,6 +1,9 @@
+using System.Collections.ObjectModel;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Input;
 using System.Windows.Media;
 using MultiSSH.Models;
 using MultiSSH.Services;
@@ -18,6 +21,13 @@ public partial class MainWindow : Window
     private SessionPane? _active;
     private SessionPane? _maximized;
 
+    // Session-manager tree state.
+    private ObservableCollection<TreeNodeVm> _rootNodes = new();
+    private TreeNodeVm? _selectedNode;
+    private readonly HashSet<string> _expandedFolders = new(StringComparer.OrdinalIgnoreCase);
+    private Point _dragStart;
+    private ConnectionVm? _dragNode;
+
     // Unsubscribe actions for the current tab strip's per-session event handlers.
     // Flushed on every RebuildContent so tab headers don't leak handlers/visuals.
     private readonly List<Action> _tabHeaderCleanup = new();
@@ -29,83 +39,88 @@ public partial class MainWindow : Window
         Closing += OnClosing;
     }
 
-    // -------------------- saved session sidebar --------------------
+    // -------------------- session manager (folder tree) --------------------
 
     private void LoadSaved()
     {
         _saved.Clear();
         _saved.AddRange(SessionStore.Load());
-        RefreshSavedList();
+        RefreshTree();
     }
 
-    private void RefreshSavedList()
+    private void RefreshTree()
     {
-        SavedList.Items.Clear();
-        foreach (var s in _saved)
+        CaptureExpansion();
+        _rootNodes = SessionTree.Build(_saved, AppSettings.Current.SessionFolders, _expandedFolders);
+        SessionTreeView.ItemsSource = _rootNodes;
+    }
+
+    private void CaptureExpansion()
+    {
+        void Walk(IEnumerable<TreeNodeVm> nodes)
         {
-            var captured = s;
-
-            var remove = new Button
-            {
-                Content = "✕",
-                ToolTip = "Remove this saved session",
-                Foreground = new SolidColorBrush(Color.FromRgb(0xE7, 0x48, 0x56)),
-                Background = Brushes.Transparent,
-                BorderThickness = new Thickness(0),
-                Width = 18,
-                Height = 18,
-                Padding = new Thickness(0),
-                FontSize = 11,
-                Cursor = System.Windows.Input.Cursors.Hand,
-                VerticalAlignment = VerticalAlignment.Center,
-            };
-            remove.Click += (_, _) => RemoveSaved(captured);
-            DockPanel.SetDock(remove, Dock.Right);
-
-            var text = new TextBlock
-            {
-                Text = s.Display,
-                VerticalAlignment = VerticalAlignment.Center,
-                TextTrimming = TextTrimming.CharacterEllipsis,
-            };
-
-            var row = new DockPanel { LastChildFill = true };
-            row.Children.Add(remove);
-            row.Children.Add(text);
-
-            SavedList.Items.Add(new ListBoxItem { Content = row, Tag = s });
+            foreach (var n in nodes)
+                if (n is FolderVm f)
+                {
+                    if (f.IsExpanded) _expandedFolders.Add(f.Path);
+                    else _expandedFolders.Remove(f.Path);
+                    Walk(f.Children);
+                }
         }
-    }
-
-    private void RemoveSaved(SessionConfig cfg)
-    {
-        if (MessageBox.Show(this, $"Remove saved session \"{cfg.Display}\"?", "Multi-SSH",
-                MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
-            return;
-        _saved.Remove(cfg);
-        PersistSaved();
-        RefreshSavedList();
+        Walk(_rootNodes);
     }
 
     private void PersistSaved() => SessionStore.Save(_saved);
 
-    private SessionConfig? SelectedSaved()
-        => (SavedList.SelectedItem as ListBoxItem)?.Tag as SessionConfig;
+    private SessionConfig? SelectedSaved() => (_selectedNode as ConnectionVm)?.Config;
 
-    // Right-clicking a row must select it first, so context-menu actions
-    // (Open/Edit/Delete) always target the row under the cursor — not whatever
-    // happened to be left-click-selected before.
-    private void SavedList_PreviewMouseRightButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    private string SelectedFolderPath() => _selectedNode switch
     {
-        var item = ItemsControl.ContainerFromElement(SavedList, (DependencyObject)e.OriginalSource) as ListBoxItem;
-        if (item != null) item.IsSelected = true;
+        FolderVm f => f.Path,
+        ConnectionVm c => c.Config.FolderPath ?? "",
+        _ => "",
+    };
+
+    private void RemoveSaved(SessionConfig cfg)
+    {
+        if (MessageBox.Show(this, $"Remove saved connection \"{cfg.Display}\"?", "Multi-SSH",
+                MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+            return;
+        _saved.Remove(cfg);
+        PersistSaved();
+        RefreshTree();
     }
 
-    private void SavedList_DoubleClick(object sender, RoutedEventArgs e)
+    // ---- tree interaction ----
+
+    private void Tree_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
+        => _selectedNode = e.NewValue as TreeNodeVm;
+
+    private void Tree_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
-        var cfg = SelectedSaved();
-        if (cfg != null) OpenSession(cfg.Clone());
+        if (NodeFromSource(e.OriginalSource as DependencyObject) is ConnectionVm c)
+        {
+            OpenSession(c.Config.Clone());
+            e.Handled = true;
+        }
     }
+
+    private void Tree_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        var item = ContainerFromSource(e.OriginalSource as DependencyObject);
+        if (item != null) { item.IsSelected = true; item.Focus(); }
+    }
+
+    private void RemoveConn_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as Button)?.DataContext is ConnectionVm c)
+        {
+            e.Handled = true;
+            RemoveSaved(c.Config);
+        }
+    }
+
+    // ---- context menu: connections ----
 
     private void MenuOpen_Click(object sender, RoutedEventArgs e)
     {
@@ -123,22 +138,190 @@ public partial class MainWindow : Window
             int idx = _saved.IndexOf(cfg);
             if (idx >= 0) _saved[idx] = dlg.Result;
             PersistSaved();
-            RefreshSavedList();
-            // Save the edit only — do not open a terminal.
+            RefreshTree();
         }
+    }
+
+    private void MenuDuplicate_Click(object sender, RoutedEventArgs e)
+    {
+        var cfg = SelectedSaved();
+        if (cfg == null) return;
+        var copy = cfg.Clone();
+        copy.Name = (string.IsNullOrWhiteSpace(cfg.Name) ? cfg.Display : cfg.Name) + " (copy)";
+        _saved.Add(copy);
+        PersistSaved();
+        RefreshTree();
     }
 
     private void MenuDelete_Click(object sender, RoutedEventArgs e)
     {
         var cfg = SelectedSaved();
-        if (cfg == null) return;
-        if (MessageBox.Show(this, $"Delete saved session \"{cfg.Display}\"?", "Multi-SSH",
-                MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+        if (cfg != null) RemoveSaved(cfg);
+    }
+
+    // ---- context menu / toolbar: folders ----
+
+    private void NewFolder_Click(object sender, RoutedEventArgs e) => CreateFolder("");
+
+    private void NewSubfolder_Click(object sender, RoutedEventArgs e) => CreateFolder(SelectedFolderPath());
+
+    private void CreateFolder(string parentPath)
+    {
+        var name = InputDialog.Ask(this, "New Folder", "Folder name:");
+        if (name == null) return;
+        name = name.Replace('/', '-').Trim();
+        if (name.Length == 0) return;
+        var path = parentPath.Length == 0 ? name : parentPath + "/" + name;
+
+        var folders = AppSettings.Current.SessionFolders;
+        if (!folders.Any(f => string.Equals(f, path, StringComparison.OrdinalIgnoreCase)))
+            folders.Add(path);
+        if (parentPath.Length > 0) _expandedFolders.Add(parentPath);
+        _expandedFolders.Add(path);
+        AppSettings.Current.Save();
+        RefreshTree();
+    }
+
+    private void RenameFolder_Click(object sender, RoutedEventArgs e)
+    {
+        if (_selectedNode is not FolderVm f)
         {
-            _saved.Remove(cfg);
-            PersistSaved();
-            RefreshSavedList();
+            MessageBox.Show(this, "Select a folder to rename.", "Multi-SSH",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
         }
+        var newName = InputDialog.Ask(this, "Rename Folder", "New name:", f.Name);
+        if (newName == null) return;
+        newName = newName.Replace('/', '-').Trim();
+        if (newName.Length == 0) return;
+
+        var oldPath = f.Path;
+        var parent = SessionTree.ParentOf(oldPath);
+        var newPath = parent.Length == 0 ? newName : parent + "/" + newName;
+        if (string.Equals(newPath, oldPath, StringComparison.OrdinalIgnoreCase)) return;
+
+        var folders = AppSettings.Current.SessionFolders;
+        for (int i = 0; i < folders.Count; i++)
+            if (PathEqualsOrUnder(folders[i], oldPath))
+                folders[i] = ReplacePrefix(folders[i], oldPath, newPath);
+        if (!folders.Any(x => string.Equals(x, newPath, StringComparison.OrdinalIgnoreCase)))
+            folders.Add(newPath);
+
+        foreach (var c in _saved)
+            if (PathEqualsOrUnder(c.FolderPath ?? "", oldPath))
+                c.FolderPath = ReplacePrefix(c.FolderPath ?? "", oldPath, newPath);
+
+        _expandedFolders.Add(newPath);
+        AppSettings.Current.Save();
+        PersistSaved();
+        RefreshTree();
+    }
+
+    private void DeleteFolder_Click(object sender, RoutedEventArgs e)
+    {
+        if (_selectedNode is not FolderVm f)
+        {
+            MessageBox.Show(this, "Select a folder to delete.", "Multi-SSH",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+        var path = f.Path;
+        var parent = SessionTree.ParentOf(path);
+        int count = _saved.Count(c => PathEqualsOrUnder(c.FolderPath ?? "", path));
+        string where = parent.Length == 0 ? "the top level" : $"\"{parent}\"";
+        string msg = count > 0
+            ? $"Delete folder \"{path}\"?\n\n{count} connection(s) inside will move to {where}. No connections are deleted."
+            : $"Delete empty folder \"{path}\"?";
+        if (MessageBox.Show(this, msg, "Multi-SSH", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+            return;
+
+        foreach (var c in _saved)
+            if (PathEqualsOrUnder(c.FolderPath ?? "", path))
+                c.FolderPath = parent;
+
+        AppSettings.Current.SessionFolders.RemoveAll(fp => PathEqualsOrUnder(fp, path));
+        _expandedFolders.RemoveWhere(p => PathEqualsOrUnder(p, path));
+        AppSettings.Current.Save();
+        PersistSaved();
+        RefreshTree();
+    }
+
+    // ---- drag & drop (move a connection into a folder) ----
+
+    private void Tree_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        _dragStart = e.GetPosition(null);
+        _dragNode = FromButton(e.OriginalSource as DependencyObject)
+            ? null
+            : NodeFromSource(e.OriginalSource as DependencyObject) as ConnectionVm;
+    }
+
+    private void Tree_PreviewMouseMove(object sender, MouseEventArgs e)
+    {
+        if (e.LeftButton != MouseButtonState.Pressed || _dragNode == null) return;
+        var p = e.GetPosition(null);
+        if (Math.Abs(p.X - _dragStart.X) < SystemParameters.MinimumHorizontalDragDistance &&
+            Math.Abs(p.Y - _dragStart.Y) < SystemParameters.MinimumVerticalDragDistance) return;
+
+        var data = new DataObject(typeof(ConnectionVm), _dragNode);
+        DragDrop.DoDragDrop(SessionTreeView, data, DragDropEffects.Move);
+        _dragNode = null;
+    }
+
+    private void Tree_DragOver(object sender, DragEventArgs e)
+    {
+        e.Effects = e.Data.GetDataPresent(typeof(ConnectionVm)) ? DragDropEffects.Move : DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    private void Tree_Drop(object sender, DragEventArgs e)
+    {
+        if (e.Data.GetData(typeof(ConnectionVm)) is not ConnectionVm dragged) return;
+        var target = NodeFromSource(e.OriginalSource as DependencyObject);
+        string newFolder = target switch
+        {
+            FolderVm f => f.Path,
+            ConnectionVm c => c.Config.FolderPath ?? "",
+            _ => "",
+        };
+        if (!string.Equals(dragged.Config.FolderPath ?? "", newFolder, StringComparison.OrdinalIgnoreCase))
+        {
+            dragged.Config.FolderPath = newFolder;
+            PersistSaved();
+            RefreshTree();
+        }
+    }
+
+    // ---- helpers ----
+
+    private static bool PathEqualsOrUnder(string p, string basePath) =>
+        string.Equals(p, basePath, StringComparison.OrdinalIgnoreCase) ||
+        p.StartsWith(basePath + "/", StringComparison.OrdinalIgnoreCase);
+
+    private static string ReplacePrefix(string p, string oldBase, string newBase) =>
+        string.Equals(p, oldBase, StringComparison.OrdinalIgnoreCase) ? newBase : newBase + p.Substring(oldBase.Length);
+
+    private static DependencyObject? SafeParent(DependencyObject o) =>
+        (o is Visual || o is System.Windows.Media.Media3D.Visual3D)
+            ? VisualTreeHelper.GetParent(o) : LogicalTreeHelper.GetParent(o);
+
+    private static TreeNodeVm? NodeFromSource(DependencyObject? src)
+        => ContainerFromSource(src)?.DataContext as TreeNodeVm;
+
+    private static TreeViewItem? ContainerFromSource(DependencyObject? src)
+    {
+        while (src != null && src is not TreeViewItem) src = SafeParent(src);
+        return src as TreeViewItem;
+    }
+
+    private static bool FromButton(DependencyObject? src)
+    {
+        while (src != null && src is not TreeViewItem)
+        {
+            if (src is Button) return true;
+            src = SafeParent(src);
+        }
+        return false;
     }
 
     // -------------------- toolbar --------------------
@@ -168,7 +351,7 @@ public partial class MainWindow : Window
 
     private void New_Click(object sender, RoutedEventArgs e)
     {
-        var dlg = new ConfigDialog { Owner = this };
+        var dlg = new ConfigDialog(null, SelectedFolderPath()) { Owner = this };
         if (dlg.ShowDialog() == true)
         {
             var cfg = dlg.Result;
@@ -176,10 +359,10 @@ public partial class MainWindow : Window
             {
                 _saved.Add(cfg.Clone());
                 PersistSaved();
-                RefreshSavedList();
+                RefreshTree();
             }
-            // Save only — do not open a terminal. Double-click the saved
-            // session in the sidebar to connect.
+            // Save only — do not open a terminal. Double-click the connection
+            // in the tree to connect.
         }
     }
 
