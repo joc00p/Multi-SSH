@@ -58,7 +58,7 @@
                             </Button>
                             <Button x:Name="IconPs" Tag="1" Style="{StaticResource KindIcon}"
                                     ToolTip="Local — PowerShell" Click="KindIcon_Click">
-                                <TextBlock Text="🌐" FontSize="13"/>
+                                <TextBlock Text="🌐" FontSize="13" Foreground="#2472C8"/>
                             </Button>
                             <Button x:Name="IconCmd" Tag="2" Style="{StaticResource KindIcon}"
                                     ToolTip="Local — Command Prompt" Click="KindIcon_Click">
@@ -70,7 +70,7 @@
                             </Button>
                             <Button x:Name="IconWsl" Tag="4" Style="{StaticResource KindIcon}"
                                     ToolTip="Local — WSL" Click="KindIcon_Click">
-                                <TextBlock Text="🐧" FontSize="13"/>
+                                <TextBlock Text="🐧" FontSize="13" Foreground="#E95420"/>
                             </Button>
                         </StackPanel>
                         <TextBlock Text="Basic options for your session" FontWeight="Bold"
