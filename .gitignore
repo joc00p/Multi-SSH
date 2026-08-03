@@ -1,6 +1,9 @@
 ## .NET / Visual Studio
 bin/
 obj/
+
+## Installer build output (the compiled Setup.exe)
+installer/Output/
 .vs/
 *.user
 *.suo
