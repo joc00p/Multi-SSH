@@ -38,7 +38,60 @@ public partial class MainWindow : Window
         Title = AppTitle;
         LoadSaved();
         ApplyDockLayout();
+        PreviewKeyDown += Window_PreviewKeyDown;
         Closing += OnClosing;
+    }
+
+    // -------------------- keep typing in the terminal --------------------
+
+    /// <summary>
+    /// Typing anywhere in the window goes to the active terminal, unless the
+    /// user is in a text-entry control (the top "Send to all" bar). Clicking the
+    /// sidebar tree or a toolbar button therefore never swallows keystrokes.
+    /// </summary>
+    private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Handled || _active == null) return;
+
+        var focused = Keyboard.FocusedElement as DependencyObject;
+        if (IsTextEntry(focused) || IsInTerminal(focused)) return;
+
+        // Tab still moves focus normally; everything else belongs to the shell.
+        if (e.Key == Key.Tab && (Keyboard.Modifiers & ModifierKeys.Control) == 0) return;
+
+        _active.Session.FocusTerminal();
+
+        // Re-raise the key at the terminal. Printable characters arrive
+        // separately as TextInput, which now lands on the terminal too, so
+        // this only re-delivers the control keys the terminal maps itself.
+        if (Keyboard.FocusedElement is IInputElement term && !ReferenceEquals(term, focused))
+        {
+            e.Handled = true;
+            term.RaiseEvent(new KeyEventArgs(e.KeyboardDevice, e.InputSource, e.Timestamp, e.Key)
+            {
+                RoutedEvent = Keyboard.KeyDownEvent,
+            });
+        }
+    }
+
+    private static bool IsTextEntry(DependencyObject? o)
+    {
+        while (o != null)
+        {
+            if (o is TextBoxBase or ComboBox or PasswordBox) return true;
+            o = SafeParent(o);
+        }
+        return false;
+    }
+
+    private static bool IsInTerminal(DependencyObject? o)
+    {
+        while (o != null)
+        {
+            if (o is Terminal.TerminalControl) return true;
+            o = SafeParent(o);
+        }
+        return false;
     }
 
     /// <summary>Window title with the running version, e.g. "Multi-SSH v1.0.5".</summary>

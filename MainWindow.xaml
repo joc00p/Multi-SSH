@@ -14,6 +14,8 @@
             <Setter Property="Padding" Value="10,4"/>
             <Setter Property="Margin" Value="0,0,6,0"/>
             <Setter Property="Cursor" Value="Hand"/>
+            <!-- Toolbar/sidebar buttons never take keyboard focus away from the terminal. -->
+            <Setter Property="Focusable" Value="False"/>
         </Style>
     </Window.Resources>
 
@@ -123,6 +125,7 @@
                             <DockPanel MinWidth="160">
                                 <Button DockPanel.Dock="Right" Content="✕" Width="16" Height="16" Padding="0"
                                         Background="Transparent" BorderThickness="0" Foreground="#D06060"
+                                        Focusable="False"
                                         Cursor="Hand" ToolTip="Remove this connection" Click="RemoveConn_Click"/>
                                 <TextBlock Text="🖥" Margin="0,0,4,0"/>
                                 <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
