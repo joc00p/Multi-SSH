@@ -1,6 +1,7 @@
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using Microsoft.Win32;
 using MultiSSH.Models;
 using MultiSSH.Services;
@@ -81,6 +82,27 @@ public partial class ConfigDialog : Window
     private void KindCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         => UpdateKindFieldStates();
 
+    /// <summary>The type icons are a shortcut for the Session type dropdown.</summary>
+    private void KindIcon_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button b && int.TryParse(b.Tag as string, out var index))
+            KindCombo.SelectedIndex = index;
+    }
+
+    /// <summary>Outline the icon matching the selected type.</summary>
+    private void HighlightKindIcon()
+    {
+        var on = new SolidColorBrush(Color.FromRgb(0x1B, 0x6A, 0xC6));
+        var off = new SolidColorBrush(Color.FromRgb(0xBB, 0xBB, 0xBB));
+        var icons = new[] { IconSsh, IconPs, IconCmd, IconBash, IconWsl };
+        for (int i = 0; i < icons.Length; i++)
+        {
+            bool active = i == (int)SelectedKind;
+            icons[i].BorderBrush = active ? on : off;
+            icons[i].BorderThickness = new Thickness(active ? 2 : 1);
+        }
+    }
+
     /// <summary>
     /// A local shell has no host, port, credentials or connection tuning, so
     /// grey those out rather than pretending they apply.
@@ -93,6 +115,8 @@ public partial class ConfigDialog : Window
         HostBox.IsEnabled = PortBox.IsEnabled = ssh;
         HostLabel.IsEnabled = PortLabel.IsEnabled = ssh;
         PanelConnection.IsEnabled = PanelAuth.IsEnabled = ssh;
+
+        HighlightKindIcon();
 
         KindHint.Text = ssh
             ? "Connection type: SSH (port 22)"
