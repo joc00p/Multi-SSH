@@ -52,7 +52,8 @@
                     <!-- Header + one-click shortcuts for each supported session type -->
                     <DockPanel Margin="0,0,0,12">
                         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                            <Button x:Name="IconSsh" Tag="0" Content="🖥" Style="{StaticResource KindIcon}"
+                            <Button x:Name="IconSsh" Tag="0" Content="SSH" FontSize="10"
+                                    Style="{StaticResource KindIcon}"
                                     ToolTip="SSH (remote host)" Click="KindIcon_Click"/>
                             <Button x:Name="IconPs" Tag="1" Content="PS" Style="{StaticResource KindIcon}"
                                     ToolTip="Local — PowerShell" Click="KindIcon_Click"/>
