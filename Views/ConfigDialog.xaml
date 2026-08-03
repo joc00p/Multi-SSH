@@ -54,7 +54,7 @@
                         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                             <Button x:Name="IconSsh" Tag="0" Style="{StaticResource KindIcon}"
                                     ToolTip="SSH (remote host)" Click="KindIcon_Click">
-                                <TextBlock Text="●" FontSize="14" Foreground="#3A96DD"/>
+                                <TextBlock Text="SSH" FontSize="9" FontWeight="Bold" Foreground="#2E86C1"/>
                             </Button>
                             <Button x:Name="IconPs" Tag="1" Style="{StaticResource KindIcon}"
                                     ToolTip="Local — PowerShell" Click="KindIcon_Click">
@@ -62,15 +62,15 @@
                             </Button>
                             <Button x:Name="IconCmd" Tag="2" Style="{StaticResource KindIcon}"
                                     ToolTip="Local — Command Prompt" Click="KindIcon_Click">
-                                <TextBlock Text="●" FontSize="14" Foreground="#9A9A9A"/>
+                                <TextBlock Text="&gt;_" FontSize="12" FontWeight="Bold" Foreground="#606060"/>
                             </Button>
                             <Button x:Name="IconBash" Tag="3" Style="{StaticResource KindIcon}"
                                     ToolTip="Local — Bash (Git for Windows)" Click="KindIcon_Click">
-                                <TextBlock Text="●" FontSize="14" Foreground="#4EAA25"/>
+                                <TextBlock Text="$" FontSize="14" FontWeight="Bold" Foreground="#2E7D14"/>
                             </Button>
                             <Button x:Name="IconWsl" Tag="4" Style="{StaticResource KindIcon}"
                                     ToolTip="Local — WSL" Click="KindIcon_Click">
-                                <TextBlock Text="●" FontSize="14" Foreground="#E95420"/>
+                                <TextBlock Text="🐧" FontSize="13"/>
                             </Button>
                         </StackPanel>
                         <TextBlock Text="Basic options for your session" FontWeight="Bold"
