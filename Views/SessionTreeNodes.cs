@@ -34,8 +34,11 @@ public class ConnectionVm : TreeNodeVm
     public SessionConfig Config { get; }
     public ConnectionVm(SessionConfig c) { Config = c; Name = c.Display; }
 
-    /// <summary>Colored ball fill for the connection type (blue = PowerShell, etc.).</summary>
+    /// <summary>Colour used to tint the ball glyph.</summary>
     public Brush KindBrush => new SolidColorBrush(SessionView.KindColor(Config.Kind));
+
+    /// <summary>Type icon glyph (🌐 for PowerShell, ● for the rest).</summary>
+    public string KindGlyph => SessionView.KindGlyph(Config.Kind);
 
     /// <summary>Tooltip naming the connection type.</summary>
     public string KindTip => "Type: " + SessionConfig.KindName(Config.Kind);

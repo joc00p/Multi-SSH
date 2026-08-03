@@ -54,23 +54,23 @@
                         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                             <Button x:Name="IconSsh" Tag="0" Style="{StaticResource KindIcon}"
                                     ToolTip="SSH (remote host)" Click="KindIcon_Click">
-                                <Ellipse Width="12" Height="12" Fill="#3A96DD"/>
+                                <TextBlock Text="●" FontSize="14" Foreground="#3A96DD"/>
                             </Button>
                             <Button x:Name="IconPs" Tag="1" Style="{StaticResource KindIcon}"
                                     ToolTip="Local — PowerShell" Click="KindIcon_Click">
-                                <Ellipse Width="12" Height="12" Fill="#2472C8"/>
+                                <TextBlock Text="🌐" FontSize="13"/>
                             </Button>
                             <Button x:Name="IconCmd" Tag="2" Style="{StaticResource KindIcon}"
                                     ToolTip="Local — Command Prompt" Click="KindIcon_Click">
-                                <Ellipse Width="12" Height="12" Fill="#9A9A9A"/>
+                                <TextBlock Text="●" FontSize="14" Foreground="#9A9A9A"/>
                             </Button>
                             <Button x:Name="IconBash" Tag="3" Style="{StaticResource KindIcon}"
                                     ToolTip="Local — Bash (Git for Windows)" Click="KindIcon_Click">
-                                <Ellipse Width="12" Height="12" Fill="#4EAA25"/>
+                                <TextBlock Text="●" FontSize="14" Foreground="#4EAA25"/>
                             </Button>
                             <Button x:Name="IconWsl" Tag="4" Style="{StaticResource KindIcon}"
                                     ToolTip="Local — WSL" Click="KindIcon_Click">
-                                <Ellipse Width="12" Height="12" Fill="#E95420"/>
+                                <TextBlock Text="●" FontSize="14" Foreground="#E95420"/>
                             </Button>
                         </StackPanel>
                         <TextBlock Text="Basic options for your session" FontWeight="Bold"
