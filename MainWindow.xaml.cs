@@ -35,8 +35,165 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        Title = AppTitle;
         LoadSaved();
+        ApplyDockLayout();
         Closing += OnClosing;
+    }
+
+    /// <summary>Window title with the running version, e.g. "Multi-SSH v1.0.5".</summary>
+    private static string AppTitle
+    {
+        get
+        {
+            var v = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+            return v == null ? "Multi-SSH" : $"Multi-SSH v{v.Major}.{v.Minor}.{v.Build}";
+        }
+    }
+
+    // -------------------- dockable session manager --------------------
+
+    private enum DockSide { Left, Right, Bottom }
+
+    private DockSide _dock = ParseDock(AppSettings.Current.SessionManagerDock);
+    private bool _sidebarCollapsed = AppSettings.Current.SessionManagerCollapsed;
+
+    private static DockSide ParseDock(string? s) => s switch
+    {
+        "Right" => DockSide.Right,
+        "Bottom" => DockSide.Bottom,
+        _ => DockSide.Left,
+    };
+
+    private void DockLeft_Click(object sender, RoutedEventArgs e) => SetDock(DockSide.Left);
+    private void DockRight_Click(object sender, RoutedEventArgs e) => SetDock(DockSide.Right);
+    private void DockBottom_Click(object sender, RoutedEventArgs e) => SetDock(DockSide.Bottom);
+
+    private void SetDock(DockSide side)
+    {
+        _dock = side;
+        AppSettings.Current.SessionManagerDock = side.ToString();
+        AppSettings.Current.Save();
+        ApplyDockLayout();
+    }
+
+    private void MinimizeSidebar_Click(object sender, RoutedEventArgs e) => SetSidebarCollapsed(true);
+
+    private void SidebarTab_Click(object sender, MouseButtonEventArgs e) => SetSidebarCollapsed(false);
+
+    private void SetSidebarCollapsed(bool collapsed)
+    {
+        _sidebarCollapsed = collapsed;
+        AppSettings.Current.SessionManagerCollapsed = collapsed;
+        AppSettings.Current.Save();
+        ApplyDockLayout();
+    }
+
+    /// <summary>
+    /// Persist the panel size after the user drags the splitter. The dragged
+    /// dimension lives in the grid definition, not on the Border.
+    /// </summary>
+    private void SidebarSplitter_DragCompleted(object sender, DragCompletedEventArgs e)
+    {
+        var s = AppSettings.Current;
+        switch (_dock)
+        {
+            case DockSide.Left: s.SessionManagerWidth = LeftCol.Width.Value; break;
+            case DockSide.Right: s.SessionManagerWidth = RightCol.Width.Value; break;
+            case DockSide.Bottom: s.SessionManagerHeight = BottomRow.Height.Value; break;
+        }
+        s.Save();
+    }
+
+    /// <summary>
+    /// Positions the session manager (or its minimized tab) and the splitter on
+    /// the chosen edge, and collapses the grid tracks belonging to the others.
+    /// </summary>
+    private void ApplyDockLayout()
+    {
+        var s = AppSettings.Current;
+        double width = s.SessionManagerWidth > 60 ? s.SessionManagerWidth : 250;
+        double height = s.SessionManagerHeight > 60 ? s.SessionManagerHeight : 200;
+
+        // Reset every track; only the docked edge gets a size below.
+        LeftCol.Width = new GridLength(0);
+        LeftSplitCol.Width = new GridLength(0);
+        RightCol.Width = new GridLength(0);
+        RightSplitCol.Width = new GridLength(0);
+        BottomRow.Height = new GridLength(0);
+        BottomSplitRow.Height = new GridLength(0);
+
+        var panel = _sidebarCollapsed ? (FrameworkElement)SidebarTab : SidebarBorder;
+        SidebarBorder.Visibility = _sidebarCollapsed ? Visibility.Collapsed : Visibility.Visible;
+        SidebarTab.Visibility = _sidebarCollapsed ? Visibility.Visible : Visibility.Collapsed;
+        SidebarSplitter.Visibility = _sidebarCollapsed ? Visibility.Collapsed : Visibility.Visible;
+
+        // The minimized tab reads vertically on the side edges, horizontally at the bottom.
+        SidebarTabText.LayoutTransform = _dock == DockSide.Bottom
+            ? Transform.Identity
+            : new RotateTransform(_dock == DockSide.Left ? 90 : -90);
+
+        int panelCol, panelRow, panelColSpan = 1;
+        switch (_dock)
+        {
+            case DockSide.Left:
+                panelCol = 0; panelRow = 0;
+                LeftCol.Width = _sidebarCollapsed ? GridLength.Auto : new GridLength(width);
+                if (!_sidebarCollapsed) LeftSplitCol.Width = new GridLength(5);
+                SetSplitter(1, 0, 1, GridResizeDirection.Columns);
+                break;
+            case DockSide.Right:
+                panelCol = 4; panelRow = 0;
+                RightCol.Width = _sidebarCollapsed ? GridLength.Auto : new GridLength(width);
+                if (!_sidebarCollapsed) RightSplitCol.Width = new GridLength(5);
+                SetSplitter(3, 0, 1, GridResizeDirection.Columns);
+                break;
+            default:
+                panelCol = 0; panelRow = 2; panelColSpan = 5;
+                BottomRow.Height = _sidebarCollapsed ? GridLength.Auto : new GridLength(height);
+                if (!_sidebarCollapsed) BottomSplitRow.Height = new GridLength(5);
+                SetSplitter(0, 1, 5, GridResizeDirection.Rows);
+                break;
+        }
+
+        Grid.SetColumn(panel, panelCol);
+        Grid.SetRow(panel, panelRow);
+        Grid.SetColumnSpan(panel, panelColSpan);
+        HighlightDockButton();
+    }
+
+    private void SetSplitter(int col, int row, int colSpan, GridResizeDirection dir)
+    {
+        Grid.SetColumn(SidebarSplitter, col);
+        Grid.SetRow(SidebarSplitter, row);
+        Grid.SetColumnSpan(SidebarSplitter, colSpan);
+        SidebarSplitter.ResizeDirection = dir;
+        SidebarSplitter.ResizeBehavior = GridResizeBehavior.PreviousAndNext;
+        if (dir == GridResizeDirection.Columns)
+        {
+            SidebarSplitter.Width = 5;
+            SidebarSplitter.Height = double.NaN;
+            SidebarSplitter.HorizontalAlignment = HorizontalAlignment.Stretch;
+            SidebarSplitter.VerticalAlignment = VerticalAlignment.Stretch;
+            SidebarSplitter.Cursor = Cursors.SizeWE;
+        }
+        else
+        {
+            SidebarSplitter.Height = 5;
+            SidebarSplitter.Width = double.NaN;
+            SidebarSplitter.HorizontalAlignment = HorizontalAlignment.Stretch;
+            SidebarSplitter.VerticalAlignment = VerticalAlignment.Stretch;
+            SidebarSplitter.Cursor = Cursors.SizeNS;
+        }
+    }
+
+    private void HighlightDockButton()
+    {
+        var on = new SolidColorBrush(Color.FromRgb(0x3B, 0x78, 0xFF));
+        var off = new SolidColorBrush(Color.FromRgb(0x3A, 0x3A, 0x44));
+        DockLeftBtn.BorderBrush = _dock == DockSide.Left ? on : off;
+        DockRightBtn.BorderBrush = _dock == DockSide.Right ? on : off;
+        DockBottomBtn.BorderBrush = _dock == DockSide.Bottom ? on : off;
     }
 
     // -------------------- session manager (folder tree) --------------------
