@@ -27,6 +27,7 @@ public class SessionView : Grid
     private bool _pendingConnect = true;
     private bool _connecting;   // guards against overlapping connect/reconnect attempts
     private ConnectionState _state = ConnectionState.Idle;
+    private readonly Recorder _recorder = new();
 
     public SessionConfig Config => _cfg;
     public string TabTitle { get; private set; }
@@ -248,7 +249,7 @@ public class SessionView : Grid
     private void HookBackend(ITerminalBackend backend)
     {
         backend.StatusChanged += SetStatusText;
-        backend.DataReceived += bytes => _term.Feed(bytes);
+        backend.DataReceived += bytes => { _term.Feed(bytes); _recorder.Write(bytes); };
         backend.Closed += msg =>
         {
             if (_state != ConnectionState.Connecting)
@@ -325,8 +326,19 @@ public class SessionView : Grid
     /// <summary>Send raw text to the remote shell (used by the broadcast bar).</summary>
     public void SendText(string text) => _conn?.Send(text);
 
+    // -------------------- output recording --------------------
+
+    public bool IsRecording => _recorder.IsActive;
+    public string? RecordingFile => _recorder.FilePath;
+
+    /// <summary>Start writing this session's output to a transcript file in <paramref name="folder"/>.</summary>
+    public void StartRecording(string folder) => _recorder.Start(folder, TabTitle);
+
+    public void StopRecording() => _recorder.Stop();
+
     public void Close()
     {
+        _recorder.Stop();
         _term.Shutdown();
         _conn?.Dispose();
         _conn = null;
@@ -339,6 +351,7 @@ public class SessionView : Grid
     /// </summary>
     public void CloseAsync()
     {
+        _recorder.Stop();
         _term.Shutdown();
         var conn = _conn;
         _conn = null;

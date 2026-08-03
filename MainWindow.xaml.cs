@@ -594,10 +594,48 @@ public partial class MainWindow : Window
         if (_active != null) OpenSession(_active.Session.Config.Clone());
     }
 
-    private void Reconnect_Click(object sender, RoutedEventArgs e)
+    // -------------------- output recording --------------------
+
+    private bool _recording;
+    private System.Windows.Threading.DispatcherTimer? _recordBlink;
+
+    private void Record_Click(object sender, RoutedEventArgs e)
     {
-        if (_active != null) _ = _active.Session.ReconnectAsync();
+        if (_recording) StopRecordingAll();
+        else StartRecordingAll();
     }
+
+    private void StartRecordingAll()
+    {
+        _recording = true;
+        var folder = Recorder.DefaultFolder;
+        foreach (var p in _panes) p.Session.StartRecording(folder);
+
+        RecordLabel.Text = "Recording";
+        RecordBtn.ToolTip = "Recording to: " + folder + "\nClick to stop.";
+        RecordDot.Fill = new SolidColorBrush(Color.FromRgb(0xE0, 0x10, 0x10));
+
+        _recordBlink ??= new System.Windows.Threading.DispatcherTimer
+        { Interval = TimeSpan.FromMilliseconds(600) };
+        _recordBlink.Tick -= RecordBlinkTick;
+        _recordBlink.Tick += RecordBlinkTick;
+        _recordBlink.Start();
+    }
+
+    private void StopRecordingAll()
+    {
+        _recording = false;
+        foreach (var p in _panes) p.Session.StopRecording();
+
+        _recordBlink?.Stop();
+        RecordDot.Opacity = 1.0;
+        RecordDot.Fill = new SolidColorBrush(Color.FromRgb(0x77, 0x77, 0x77));
+        RecordLabel.Text = "Record";
+        RecordBtn.ToolTip = "Record all sessions' output to transcript files";
+    }
+
+    private void RecordBlinkTick(object? sender, EventArgs e)
+        => RecordDot.Opacity = RecordDot.Opacity > 0.6 ? 0.3 : 1.0;
 
     // -------------------- broadcast to all sessions --------------------
 
@@ -667,6 +705,9 @@ public partial class MainWindow : Window
         pane.MaximizeToggleRequested += ToggleMaximize;
         // When the remote shell exits, destroy its window automatically.
         view.ShellExited += _ => ClosePane(pane);
+
+        // If a recording is in progress, capture this new session too.
+        if (_recording) view.StartRecording(Recorder.DefaultFolder);
 
         _panes.Add(pane);
         _active = pane;
