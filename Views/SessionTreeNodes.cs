@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Windows.Media;
 using MultiSSH.Models;
 
 namespace MultiSSH.Views;
@@ -32,6 +33,12 @@ public class ConnectionVm : TreeNodeVm
 {
     public SessionConfig Config { get; }
     public ConnectionVm(SessionConfig c) { Config = c; Name = c.Display; }
+
+    /// <summary>Colored ball fill for the connection type (blue = PowerShell, etc.).</summary>
+    public Brush KindBrush => new SolidColorBrush(SessionView.KindColor(Config.Kind));
+
+    /// <summary>Tooltip naming the connection type.</summary>
+    public string KindTip => "Type: " + SessionConfig.KindName(Config.Kind);
 }
 
 /// <summary>Builds the folder/connection tree from the flat connection list plus
