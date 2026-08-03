@@ -72,15 +72,44 @@ begin
     Result := RemoveQuotes(s);
 end;
 
-{ Before installing new files, silently uninstall any previous version. }
+{ User data (saved connections + hot keys) lives in %APPDATA%\Multi-SSH and is
+  never installed to the application folder, so the uninstaller does not touch it.
+  These helpers add an explicit safety net: back the files up before removing the
+  old version and restore any that go missing, so an upgrade can never lose them. }
+procedure CopyIfExists(const Src, Dst: String);
+begin
+  if FileExists(Src) then
+    CopyFile(Src, Dst, False);   { False = overwrite }
+end;
+
+procedure BackupUserData(const DataDir, BackupDir: String);
+begin
+  if not DirExists(DataDir) then Exit;
+  ForceDirectories(BackupDir);
+  CopyIfExists(DataDir + '\sessions.json',     BackupDir + '\sessions.json');
+  CopyIfExists(DataDir + '\sessions.json.bak', BackupDir + '\sessions.json.bak');
+  CopyIfExists(DataDir + '\settings.json',     BackupDir + '\settings.json');
+end;
+
+procedure RestoreMissing(const Name, BackupDir, DataDir: String);
+begin
+  if FileExists(BackupDir + '\' + Name) and not FileExists(DataDir + '\' + Name) then
+    CopyFile(BackupDir + '\' + Name, DataDir + '\' + Name, False);
+end;
+
+{ Before installing new files, back up user data, silently uninstall any previous
+  version, then restore any user data that disappeared. }
 procedure CurStepChanged(CurStep: TSetupStep);
 var
-  Uninstaller: String;
-  ResultCode: Integer;
-  Tries: Integer;
+  Uninstaller, DataDir, BackupDir: String;
+  ResultCode, Tries: Integer;
 begin
   if CurStep = ssInstall then
   begin
+    DataDir := ExpandConstant('{userappdata}\Multi-SSH');
+    BackupDir := ExpandConstant('{tmp}\MultiSSH-data-backup');
+    BackupUserData(DataDir, BackupDir);
+
     Uninstaller := PreviousUninstaller();
     if (Uninstaller <> '') and FileExists(Uninstaller) then
     begin
@@ -95,5 +124,10 @@ begin
         Tries := Tries + 1;
       end;
     end;
+
+    ForceDirectories(DataDir);
+    RestoreMissing('sessions.json',     BackupDir, DataDir);
+    RestoreMissing('sessions.json.bak', BackupDir, DataDir);
+    RestoreMissing('settings.json',     BackupDir, DataDir);
   end;
 end;
