@@ -42,7 +42,49 @@ public partial class MainWindow : Window
     {
         SavedList.Items.Clear();
         foreach (var s in _saved)
-            SavedList.Items.Add(new ListBoxItem { Content = s.Display, Tag = s });
+        {
+            var captured = s;
+
+            var remove = new Button
+            {
+                Content = "✕",
+                ToolTip = "Remove this saved session",
+                Foreground = new SolidColorBrush(Color.FromRgb(0xE7, 0x48, 0x56)),
+                Background = Brushes.Transparent,
+                BorderThickness = new Thickness(0),
+                Width = 18,
+                Height = 18,
+                Padding = new Thickness(0),
+                FontSize = 11,
+                Cursor = System.Windows.Input.Cursors.Hand,
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+            remove.Click += (_, _) => RemoveSaved(captured);
+            DockPanel.SetDock(remove, Dock.Right);
+
+            var text = new TextBlock
+            {
+                Text = s.Display,
+                VerticalAlignment = VerticalAlignment.Center,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+            };
+
+            var row = new DockPanel { LastChildFill = true };
+            row.Children.Add(remove);
+            row.Children.Add(text);
+
+            SavedList.Items.Add(new ListBoxItem { Content = row, Tag = s });
+        }
+    }
+
+    private void RemoveSaved(SessionConfig cfg)
+    {
+        if (MessageBox.Show(this, $"Remove saved session \"{cfg.Display}\"?", "Multi-SSH",
+                MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+            return;
+        _saved.Remove(cfg);
+        PersistSaved();
+        RefreshSavedList();
     }
 
     private void PersistSaved() => SessionStore.Save(_saved);
@@ -100,6 +142,29 @@ public partial class MainWindow : Window
     }
 
     // -------------------- toolbar --------------------
+
+    private void Open_Click(object sender, RoutedEventArgs e)
+    {
+        var cfg = SelectedSaved();
+        if (cfg == null)
+        {
+            MessageBox.Show(this, "Select a saved session in the sidebar to open.", "Multi-SSH",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+        OpenSession(cfg.Clone());
+    }
+
+    private void Edit_Click(object sender, RoutedEventArgs e)
+    {
+        if (SelectedSaved() == null)
+        {
+            MessageBox.Show(this, "Select a saved session in the sidebar to edit.", "Multi-SSH",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+        MenuEdit_Click(sender, e);
+    }
 
     private void New_Click(object sender, RoutedEventArgs e)
     {

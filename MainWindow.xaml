@@ -23,6 +23,8 @@
                 <!-- Left: session/view controls -->
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
                     <Button x:Name="NewBtn" Content="＋ New Session" Style="{StaticResource ToolBtn}" Click="New_Click"/>
+                    <Button x:Name="OpenBtn" Content="▶ Open" Style="{StaticResource ToolBtn}" Click="Open_Click"/>
+                    <Button x:Name="EditBtn" Content="✎ Edit" Style="{StaticResource ToolBtn}" Click="Edit_Click"/>
                     <Button x:Name="DupBtn" Content="⧉ Duplicate" Style="{StaticResource ToolBtn}" Click="Duplicate_Click"/>
                     <Button x:Name="ReconnectBtn" Content="⟳ Reconnect" Style="{StaticResource ToolBtn}" Click="Reconnect_Click"/>
                     <Button x:Name="SettingsBtn" Content="⚙ Settings" Style="{StaticResource ToolBtn}" Click="Settings_Click"/>
