@@ -1,5 +1,6 @@
 using System.IO;
 using System.Text.Json;
+using MultiSSH.Models;
 
 namespace MultiSSH.Services;
 
@@ -13,6 +14,9 @@ public class AppSettings
     public string DefaultFontFamily { get; set; } = "Consolas";
     public double DefaultFontSize { get; set; } = 14;
     public string DefaultColorScheme { get; set; } = "Campbell";
+
+    /// <summary>User-configured hot keys (key → command).</summary>
+    public List<HotKey> HotKeys { get; set; } = new();
 
     private static readonly string Dir =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Multi-SSH");

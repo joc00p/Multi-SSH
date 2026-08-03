@@ -472,6 +472,19 @@ public class TerminalControl : Control
         if (ctrl && shift && e.Key == Key.C) { CopySelection(); e.Handled = true; return; }
         if (ctrl && shift && e.Key == Key.V) { Paste(); e.Handled = true; return; }
 
+        // User-configured hot keys: send the mapped command to the shell.
+        var pressed = e.Key == Key.System ? e.SystemKey : e.Key; // Alt combos arrive as System
+        foreach (var hk in Services.AppSettings.Current.HotKeys)
+        {
+            if (hk.Matches(pressed, mods) && !string.IsNullOrEmpty(hk.Command))
+            {
+                Input?.Invoke(Encoding.UTF8.GetBytes(hk.Command + (hk.SendEnter ? "\r" : "")));
+                _scrollOffset = 0;
+                e.Handled = true;
+                return;
+            }
+        }
+
         byte[]? seq = MapKey(e.Key, ctrl, shift);
         if (seq != null)
         {
