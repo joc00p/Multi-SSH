@@ -127,6 +127,7 @@
                            Foreground="#666" FontSize="10" TextWrapping="Wrap" Margin="10,6,10,10"/>
                 <TreeView x:Name="SessionTreeView" Background="Transparent" BorderThickness="0" Foreground="White"
                           AllowDrop="True"
+                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                           MouseDoubleClick="Tree_MouseDoubleClick"
                           SelectedItemChanged="Tree_SelectedItemChanged"
                           PreviewMouseRightButtonDown="Tree_PreviewMouseRightButtonDown"
@@ -141,12 +142,15 @@
                             </StackPanel>
                         </HierarchicalDataTemplate>
                         <DataTemplate DataType="{x:Type vm:ConnectionVm}">
-                            <DockPanel MinWidth="160">
+                            <!-- Fills the row width; the ✕ docks to the far right and the
+                                 name fills the middle (ellipsis), so they never overlap. -->
+                            <DockPanel HorizontalAlignment="Stretch">
                                 <Button DockPanel.Dock="Right" Content="✕" Width="16" Height="16" Padding="0"
+                                        Margin="6,0,4,0" VerticalAlignment="Center"
                                         Background="Transparent" BorderThickness="0" Foreground="#D06060"
                                         Focusable="False"
                                         Cursor="Hand" ToolTip="Remove this connection" Click="RemoveConn_Click"/>
-                                <TextBlock Text="🖥" Margin="0,0,4,0"/>
+                                <TextBlock DockPanel.Dock="Left" Text="🖥" Margin="0,0,4,0"/>
                                 <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
                             </DockPanel>
                         </DataTemplate>
@@ -155,6 +159,8 @@
                         <Style TargetType="TreeViewItem">
                             <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
                             <Setter Property="Foreground" Value="White"/>
+                            <!-- Stretch the row so its content can reach the right edge. -->
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
                         </Style>
                     </TreeView.ItemContainerStyle>
                     <TreeView.ContextMenu>
