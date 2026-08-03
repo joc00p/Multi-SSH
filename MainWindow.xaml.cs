@@ -13,7 +13,20 @@ namespace MultiSSH;
 
 public partial class MainWindow : Window
 {
-    private enum ViewMode { Tabs, Tiles }
+    private enum ViewMode
+    {
+        /// <summary>One session at a time behind a tab strip.</summary>
+        Tabs,
+        /// <summary>Every session tiled in a roughly square grid.</summary>
+        Tiles,
+        /// <summary>Every session side by side in full-height columns.</summary>
+        TilesVertical,
+        /// <summary>Sessions cascaded, each offset from the one behind it.</summary>
+        Layered,
+    }
+
+    /// <summary>Diagonal offset between cascaded sessions, in pixels.</summary>
+    private const double LayerStep = 28;
 
     private readonly List<SessionConfig> _saved = new();
     private readonly List<SessionPane> _panes = new();
@@ -632,6 +645,8 @@ public partial class MainWindow : Window
 
     private void Tabs_Click(object sender, RoutedEventArgs e) => SetMode(ViewMode.Tabs);
     private void Tiles_Click(object sender, RoutedEventArgs e) => SetMode(ViewMode.Tiles);
+    private void TilesVertical_Click(object sender, RoutedEventArgs e) => SetMode(ViewMode.TilesVertical);
+    private void Layered_Click(object sender, RoutedEventArgs e) => SetMode(ViewMode.Layered);
 
     private void SetMode(ViewMode mode)
     {
@@ -677,6 +692,7 @@ public partial class MainWindow : Window
     {
         _active = pane;
         foreach (var p in _panes) p.Active = ReferenceEquals(p, pane);
+        RaiseActiveLayer(pane);
         pane.Session.FocusTerminal();
     }
 
@@ -709,16 +725,20 @@ public partial class MainWindow : Window
         {
             // One session fills the tiled area; double-click again to restore.
             _maximized.HeaderVisible = true;
+            _maximized.Margin = new Thickness(0);
             ContentHost.Children.Add(_maximized);
             HighlightModeButton();
             SetActive(_maximized);
             return;
         }
 
-        if (_mode == ViewMode.Tabs)
-            BuildTabs();
-        else
-            BuildTiles();
+        switch (_mode)
+        {
+            case ViewMode.Tabs: BuildTabs(); break;
+            case ViewMode.TilesVertical: BuildTiles(vertical: true); break;
+            case ViewMode.Layered: BuildLayered(); break;
+            default: BuildTiles(vertical: false); break;
+        }
 
         HighlightModeButton();
 
@@ -733,6 +753,7 @@ public partial class MainWindow : Window
         {
             pane.HeaderVisible = false;
             pane.Active = false;
+            pane.Margin = new Thickness(0);
             var item = new TabItem { Content = pane, Tag = pane, Header = BuildTabHeader(pane) };
             tabs.Items.Add(item);
             if (ReferenceEquals(pane, _active)) item.IsSelected = true;
@@ -799,28 +820,81 @@ public partial class MainWindow : Window
         return panel;
     }
 
-    private void BuildTiles()
+    /// <summary>
+    /// Tile every session: a roughly square grid, or — when <paramref name="vertical"/>
+    /// is set — one full-height column each, side by side.
+    /// </summary>
+    private void BuildTiles(bool vertical)
     {
         var grid = new UniformGrid { Margin = new Thickness(2) };
-        // UniformGrid auto-computes rows/cols; every tile resizes to fit as we add more.
         int n = _panes.Count;
-        grid.Columns = (int)Math.Ceiling(Math.Sqrt(n));
-        grid.Rows = (int)Math.Ceiling((double)n / grid.Columns);
+        if (vertical)
+        {
+            grid.Rows = 1;
+            grid.Columns = n;
+        }
+        else
+        {
+            // UniformGrid auto-computes rows/cols; every tile resizes to fit as we add more.
+            grid.Columns = (int)Math.Ceiling(Math.Sqrt(n));
+            grid.Rows = (int)Math.Ceiling((double)n / grid.Columns);
+        }
 
         foreach (var pane in _panes)
         {
             pane.HeaderVisible = true;
+            pane.Margin = new Thickness(0);
             grid.Children.Add(pane);
         }
         ContentHost.Children.Add(grid);
     }
 
+    /// <summary>
+    /// Cascade the sessions. Every pane fills the host but is inset a little
+    /// further from the top-left than the one behind it, so each title bar stays
+    /// visible; clicking a pane brings it to the front.
+    /// </summary>
+    private void BuildLayered()
+    {
+        var host = new Grid { Margin = new Thickness(2) };
+        int n = _panes.Count;
+
+        // Keep the cascade from consuming the whole pane on a small window.
+        double step = LayerStep;
+        if (n > 1)
+        {
+            double available = Math.Min(ContentHost.ActualWidth, ContentHost.ActualHeight);
+            if (available > 0) step = Math.Min(step, available / 2 / (n - 1));
+            if (step < 6) step = 6;
+        }
+
+        for (int i = 0; i < n; i++)
+        {
+            var pane = _panes[i];
+            pane.HeaderVisible = true;
+            pane.Margin = new Thickness(i * step, i * step, (n - 1 - i) * step, (n - 1 - i) * step);
+            Panel.SetZIndex(pane, i);
+            host.Children.Add(pane);
+        }
+        ContentHost.Children.Add(host);
+    }
+
+    /// <summary>In the layered view, raise the active pane above the others.</summary>
+    private void RaiseActiveLayer(SessionPane pane)
+    {
+        if (_mode != ViewMode.Layered) return;
+        for (int i = 0; i < _panes.Count; i++) Panel.SetZIndex(_panes[i], i);
+        Panel.SetZIndex(pane, _panes.Count);
+    }
+
     private void HighlightModeButton()
     {
-        TabsBtn.BorderBrush = new SolidColorBrush(_mode == ViewMode.Tabs
-            ? Color.FromRgb(0x3B, 0x78, 0xFF) : Color.FromRgb(0x3A, 0x3A, 0x44));
-        TilesBtn.BorderBrush = new SolidColorBrush(_mode == ViewMode.Tiles
-            ? Color.FromRgb(0x3B, 0x78, 0xFF) : Color.FromRgb(0x3A, 0x3A, 0x44));
+        var on = new SolidColorBrush(Color.FromRgb(0x3B, 0x78, 0xFF));
+        var off = new SolidColorBrush(Color.FromRgb(0x3A, 0x3A, 0x44));
+        TabsBtn.BorderBrush = _mode == ViewMode.Tabs ? on : off;
+        TilesBtn.BorderBrush = _mode == ViewMode.Tiles ? on : off;
+        TilesVBtn.BorderBrush = _mode == ViewMode.TilesVertical ? on : off;
+        LayeredBtn.BorderBrush = _mode == ViewMode.Layered ? on : off;
     }
 
     private void OnClosing(object? sender, System.ComponentModel.CancelEventArgs e)
