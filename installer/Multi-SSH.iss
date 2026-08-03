@@ -51,3 +51,49 @@ Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopico
 
 [Run]
 Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent
+
+[Code]
+{ Uninstall registry key for this AppId (Inno appends _is1). }
+const
+  UninstKey = 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{9A5E4C2F-7B3D-4E6A-9C1F-2D8B6A0E5F71}_is1';
+
+{ Returns the previous version's uninstaller exe (unquoted), or '' if not installed.
+  Checks per-user (HKCU) first, then per-machine (HKLM, both registry views). }
+function PreviousUninstaller(): String;
+var
+  s: String;
+begin
+  Result := '';
+  if RegQueryStringValue(HKCU, UninstKey, 'UninstallString', s) then
+    Result := RemoveQuotes(s)
+  else if RegQueryStringValue(HKLM64, UninstKey, 'UninstallString', s) then
+    Result := RemoveQuotes(s)
+  else if RegQueryStringValue(HKLM32, UninstKey, 'UninstallString', s) then
+    Result := RemoveQuotes(s);
+end;
+
+{ Before installing new files, silently uninstall any previous version. }
+procedure CurStepChanged(CurStep: TSetupStep);
+var
+  Uninstaller: String;
+  ResultCode: Integer;
+  Tries: Integer;
+begin
+  if CurStep = ssInstall then
+  begin
+    Uninstaller := PreviousUninstaller();
+    if (Uninstaller <> '') and FileExists(Uninstaller) then
+    begin
+      Exec(Uninstaller, '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART', '',
+        SW_HIDE, ewWaitUntilTerminated, ResultCode);
+      { The Inno uninstaller relaunches from a temp copy and returns early, so
+        wait for the real uninstaller exe to disappear before we overwrite files. }
+      Tries := 0;
+      while FileExists(Uninstaller) and (Tries < 100) do
+      begin
+        Sleep(100);
+        Tries := Tries + 1;
+      end;
+    end;
+  end;
+end;
