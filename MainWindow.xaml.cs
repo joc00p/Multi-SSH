@@ -82,7 +82,7 @@ public partial class MainWindow : Window
             if (idx >= 0) _saved[idx] = dlg.Result;
             PersistSaved();
             RefreshSavedList();
-            if (dlg.Result != null) OpenSession(dlg.Result.Clone());
+            // Save the edit only — do not open a terminal.
         }
     }
 
@@ -107,13 +107,14 @@ public partial class MainWindow : Window
         if (dlg.ShowDialog() == true)
         {
             var cfg = dlg.Result;
-            if (dlg.SaveToSidebar && !string.IsNullOrWhiteSpace(cfg.Host))
+            if (!string.IsNullOrWhiteSpace(cfg.Host))
             {
                 _saved.Add(cfg.Clone());
                 PersistSaved();
                 RefreshSavedList();
             }
-            OpenSession(cfg);
+            // Save only — do not open a terminal. Double-click the saved
+            // session in the sidebar to connect.
         }
     }
 

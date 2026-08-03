@@ -127,8 +127,10 @@ public class SessionView : Grid
         SetState(ConnectionState.Connecting, "Connecting…");
 
         // If this method needs a password and none was saved, ask for one now
-        // (securely, masked) rather than failing the login.
-        if (UsesPassword(_cfg.Auth) && string.IsNullOrEmpty(_cfg.Password))
+        // (securely, masked) rather than failing the login. A key file means
+        // public-key auth, so never prompt for a password in that case.
+        if (UsesPassword(_cfg.Auth) && string.IsNullOrEmpty(_cfg.Password)
+            && string.IsNullOrEmpty(_cfg.PrivateKeyPath))
         {
             var pw = PromptSecret($"Password for {_cfg.Username}@{_cfg.Host}",
                 $"Host {_cfg.Host} : {_cfg.Port}", null);
