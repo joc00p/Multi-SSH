@@ -22,6 +22,10 @@ public class SessionConfig
     public int Port { get; set; } = 22;
     public string Username { get; set; } = "";
 
+    /// <summary>Folder this connection lives in, e.g. "Client A/Prod". "" = top level.
+    /// Uses '/' as the separator. Old sessions load with "" (root), so nothing is lost.</summary>
+    public string FolderPath { get; set; } = "";
+
     // --- Connection / Authentication ---
     public AuthMethod Auth { get; set; } = AuthMethod.Password;
 

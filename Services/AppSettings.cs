@@ -18,6 +18,10 @@ public class AppSettings
     /// <summary>User-configured hot keys (key → command).</summary>
     public List<HotKey> HotKeys { get; set; } = new();
 
+    /// <summary>Session-manager folder paths (e.g. "Client A", "Client A/Prod"),
+    /// including empty folders so structure persists even with no connections in it.</summary>
+    public List<string> SessionFolders { get; set; } = new();
+
     private static readonly string Dir =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Multi-SSH");
     private static readonly string FilePath = Path.Combine(Dir, "settings.json");

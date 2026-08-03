@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using Microsoft.Win32;
@@ -13,18 +14,28 @@ public partial class ConfigDialog : Window
 
     private readonly StackPanel[] _panels;
 
-    public ConfigDialog(SessionConfig? existing = null)
+    public ConfigDialog(SessionConfig? existing = null, string? defaultFolder = null)
     {
         InitializeComponent();
         _panels = new[]
         {
             PanelSession, PanelConnection, PanelAuth, PanelTerminal, PanelAppearance, PanelBehaviour
         };
-        Load(existing ?? NewSessionFromDefaults());
+        PopulateFolders();
+        Load(existing ?? NewSessionFromDefaults(defaultFolder));
+    }
+
+    private void PopulateFolders()
+    {
+        FolderCombo.Items.Clear();
+        FolderCombo.Items.Add("");   // top level
+        foreach (var f in AppSettings.Current.SessionFolders
+                     .OrderBy(x => x, System.StringComparer.OrdinalIgnoreCase))
+            FolderCombo.Items.Add(f);
     }
 
     /// <summary>A blank session pre-filled with the app-wide defaults (font, scheme).</summary>
-    private static SessionConfig NewSessionFromDefaults()
+    private static SessionConfig NewSessionFromDefaults(string? defaultFolder = null)
     {
         var app = AppSettings.Current;
         return new SessionConfig
@@ -32,6 +43,7 @@ public partial class ConfigDialog : Window
             FontFamily = app.DefaultFontFamily,
             FontSize = app.DefaultFontSize,
             ColorScheme = app.DefaultColorScheme,
+            FolderPath = defaultFolder ?? "",
         };
     }
 
@@ -40,6 +52,7 @@ public partial class ConfigDialog : Window
         HostBox.Text = c.Host;
         PortBox.Text = c.Port.ToString();
         NameBox.Text = c.Name;
+        FolderCombo.Text = c.FolderPath ?? "";
         UserBox.Text = c.Username;
         KeepAliveBox.Text = c.KeepAliveSeconds.ToString();
         TimeoutBox.Text = c.ConnectTimeoutSeconds.ToString();
@@ -115,6 +128,7 @@ public partial class ConfigDialog : Window
             Host = HostBox.Text.Trim(),
             Name = NameBox.Text.Trim(),
             Username = UserBox.Text.Trim(),
+            FolderPath = (FolderCombo.Text ?? "").Trim().Trim('/'),
             Auth = (AuthMethod)Math.Max(0, AuthCombo.SelectedIndex),
             Password = string.IsNullOrEmpty(PassBox.Password) ? null : PassBox.Password,
             PrivateKeyPath = string.IsNullOrWhiteSpace(KeyPathBox.Text) ? null : KeyPathBox.Text.Trim(),
