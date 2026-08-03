@@ -22,7 +22,7 @@ public class SessionView : Grid
     private readonly TerminalControl _term;
     private readonly TextBlock _status;
     private readonly Border _statusBar;
-    private SshConnection? _conn;
+    private ITerminalBackend? _conn;
     private bool _connected;
     private bool _pendingConnect = true;
     private bool _connecting;   // guards against overlapping connect/reconnect attempts
@@ -124,6 +124,12 @@ public class SessionView : Grid
         int cols = _term.Buffer.Cols;
         int rows = _term.Buffer.Rows;
 
+        if (_cfg.IsLocal)
+        {
+            await StartLocalShellAsync(cols, rows);
+            return;
+        }
+
         SetState(ConnectionState.Connecting, "Connecting…");
 
         // If this method needs a password and none was saved, ask for one now
@@ -140,20 +146,9 @@ public class SessionView : Grid
 
         for (int attempt = 1; ; attempt++)
         {
-            _conn = new SshConnection(_cfg);
-            _conn.StatusChanged += SetStatusText;
-            _conn.DataReceived += bytes => _term.Feed(bytes);
-            _conn.Closed += msg =>
-            {
-                if (_state != ConnectionState.Connecting)
-                    SetState(ConnectionState.Disconnected, msg);
-                Dispatcher.BeginInvoke(() => ConnectionClosed?.Invoke(this));
-            };
-            _conn.ShellExited += () =>
-            {
-                SetState(ConnectionState.Disconnected, "Shell closed");
-                Dispatcher.BeginInvoke(() => ShellExited?.Invoke(this));
-            };
+            var ssh = new SshConnection(_cfg);
+            HookBackend(ssh);
+            _conn = ssh;
 
             try
             {
@@ -201,6 +196,49 @@ public class SessionView : Grid
                 return;
             }
         }
+    }
+
+    /// <summary>
+    /// Start a local PowerShell / cmd session. No host, no credentials — the
+    /// shell either launches or it doesn't.
+    /// </summary>
+    private async Task StartLocalShellAsync(int cols, int rows)
+    {
+        SetState(ConnectionState.Connecting, $"Starting {_cfg.LocalShellName} …");
+
+        var local = new LocalShellConnection(_cfg);
+        HookBackend(local);
+        _conn = local;
+
+        try
+        {
+            await local.ConnectAsync(cols, rows);
+            SetState(ConnectionState.Connected, $"{_cfg.LocalShellName} — local");
+        }
+        catch (Exception ex)
+        {
+            _conn = null;
+            local.Dispose();
+            Fail(ex.Message);
+        }
+    }
+
+    /// <summary>Wire a backend's events to this view (shared by SSH and local shells).</summary>
+    private void HookBackend(ITerminalBackend backend)
+    {
+        backend.StatusChanged += SetStatusText;
+        backend.DataReceived += bytes => _term.Feed(bytes);
+        backend.Closed += msg =>
+        {
+            if (_state != ConnectionState.Connecting)
+                SetState(ConnectionState.Disconnected, msg);
+            Dispatcher.BeginInvoke(() => ConnectionClosed?.Invoke(this));
+        };
+        backend.ShellExited += () =>
+        {
+            SetState(ConnectionState.Disconnected, "Shell closed");
+            Dispatcher.BeginInvoke(() => ShellExited?.Invoke(this));
+        };
     }
 
     private static bool UsesPassword(AuthMethod m)

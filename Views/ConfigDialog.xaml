@@ -35,7 +35,7 @@
             <Grid>
                 <!-- Session -->
                 <StackPanel x:Name="PanelSession">
-                    <TextBlock Text="Basic options for your SSH session" FontWeight="Bold" Margin="0,0,0,12"/>
+                    <TextBlock Text="Basic options for your session" FontWeight="Bold" Margin="0,0,0,12"/>
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="120"/>
@@ -46,23 +46,33 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Text="Host Name (or IP)" VerticalAlignment="Center" Grid.Row="0"/>
-                        <TextBox x:Name="HostBox" Grid.Row="0" Grid.Column="1" Margin="0,4"/>
-                        <TextBlock Text="Port" Grid.Row="0" Grid.Column="2" HorizontalAlignment="Right"
+                        <TextBlock Text="Session type" VerticalAlignment="Center" Grid.Row="0"/>
+                        <ComboBox x:Name="KindCombo" Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,4"
+                                  SelectionChanged="KindCombo_SelectionChanged"
+                                  ToolTip="SSH connects to a remote host. The local shells run on this PC.">
+                            <ComboBoxItem Content="SSH (remote host)"/>
+                            <ComboBoxItem Content="Local — PowerShell"/>
+                            <ComboBoxItem Content="Local — Command Prompt"/>
+                        </ComboBox>
+
+                        <TextBlock x:Name="HostLabel" Text="Host Name (or IP)" VerticalAlignment="Center" Grid.Row="1"/>
+                        <TextBox x:Name="HostBox" Grid.Row="1" Grid.Column="1" Margin="0,4"/>
+                        <TextBlock x:Name="PortLabel" Text="Port" Grid.Row="1" Grid.Column="2" HorizontalAlignment="Right"
                                    VerticalAlignment="Center" Margin="0,0,44,0"/>
-                        <TextBox x:Name="PortBox" Grid.Row="0" Grid.Column="2" Width="40"
+                        <TextBox x:Name="PortBox" Grid.Row="1" Grid.Column="2" Width="40"
                                  HorizontalAlignment="Right" Margin="0,4" Text="22"/>
 
-                        <TextBlock Text="Saved session name" Grid.Row="1" VerticalAlignment="Center"/>
-                        <TextBox x:Name="NameBox" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,4"/>
+                        <TextBlock Text="Saved session name" Grid.Row="2" VerticalAlignment="Center"/>
+                        <TextBox x:Name="NameBox" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,4"/>
 
-                        <TextBlock Text="Folder" Grid.Row="2" VerticalAlignment="Center"/>
-                        <ComboBox x:Name="FolderCombo" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2"
+                        <TextBlock Text="Folder" Grid.Row="3" VerticalAlignment="Center"/>
+                        <ComboBox x:Name="FolderCombo" Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2"
                                   Margin="0,4" IsEditable="True"
                                   ToolTip="Group this connection under a folder (e.g. Client A/Prod). Blank = top level."/>
                     </Grid>
-                    <TextBlock Margin="0,14,0,4" Text="Connection type: SSH (port 22)" Foreground="#555"/>
+                    <TextBlock x:Name="KindHint" Margin="0,14,0,4" Text="Connection type: SSH (port 22)" Foreground="#555"/>
                     <CheckBox x:Name="SaveChk" Content="Save this session to the sidebar" Margin="0,10,0,0" IsChecked="True"/>
                 </StackPanel>
 

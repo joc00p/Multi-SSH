@@ -10,6 +10,17 @@ public enum AuthMethod
     KeyboardInteractive
 }
 
+/// <summary>What a session actually talks to.</summary>
+public enum SessionKind
+{
+    /// <summary>A remote SSH host (the default, and how every pre-existing session loads).</summary>
+    Ssh,
+    /// <summary>A local Windows PowerShell console on this machine.</summary>
+    PowerShell,
+    /// <summary>A local cmd.exe console on this machine.</summary>
+    Cmd
+}
+
 /// <summary>
 /// A saved / active session profile. Mirrors the common set of options
 /// exposed by PuTTY's configuration dialog.
@@ -17,6 +28,10 @@ public enum AuthMethod
 public class SessionConfig
 {
     // --- Session ---
+
+    /// <summary>SSH, or a local shell. Old saved sessions have no value and load as SSH.</summary>
+    public SessionKind Kind { get; set; } = SessionKind.Ssh;
+
     public string Name { get; set; } = "";
     public string Host { get; set; } = "";
     public int Port { get; set; } = 22;
@@ -60,10 +75,19 @@ public class SessionConfig
     public bool CopyOnSelect { get; set; } = true;
     public bool PasteOnRightClick { get; set; } = true;
 
+    /// <summary>True for a shell running on this machine rather than over SSH.</summary>
     [JsonIgnore]
-    public string Display => string.IsNullOrWhiteSpace(Name)
-        ? (string.IsNullOrWhiteSpace(Host) ? "(new session)" : $"{Username}@{Host}")
-        : Name;
+    public bool IsLocal => Kind != SessionKind.Ssh;
+
+    /// <summary>Friendly name of the local shell, e.g. "PowerShell".</summary>
+    [JsonIgnore]
+    public string LocalShellName => Kind == SessionKind.Cmd ? "Command Prompt" : "PowerShell";
+
+    [JsonIgnore]
+    public string Display => !string.IsNullOrWhiteSpace(Name) ? Name
+        : IsLocal ? LocalShellName
+        : string.IsNullOrWhiteSpace(Host) ? "(new session)"
+        : $"{Username}@{Host}";
 
     public SessionConfig Clone()
     {
