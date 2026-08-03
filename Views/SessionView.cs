@@ -52,22 +52,25 @@ public class SessionView : Grid
         _ => Color.FromRgb(0x77, 0x77, 0x77),
     };
 
-    /// <summary>Connection-type colour (used to tint the ball glyph).</summary>
+    /// <summary>Connection-type colour (used to tint the type glyph).</summary>
     public static Color KindColor(SessionKind k) => k switch
     {
         SessionKind.PowerShell => Color.FromRgb(0x24, 0x72, 0xC8), // blue
-        SessionKind.Cmd => Color.FromRgb(0x9A, 0x9A, 0x9A),        // gray
+        SessionKind.Cmd => Color.FromRgb(0x80, 0x80, 0x80),        // gray
         SessionKind.Bash => Color.FromRgb(0x4E, 0xAA, 0x25),       // green
         SessionKind.Wsl => Color.FromRgb(0xE9, 0x54, 0x20),        // ubuntu orange
         _ => Color.FromRgb(0x3A, 0x96, 0xDD),                       // SSH: cyan
     };
 
-    /// <summary>Connection-type icon glyph. PowerShell uses the 🌐 globe; the
-    /// others are a filled ball tinted by <see cref="KindColor"/>.</summary>
+    /// <summary>Connection-type icon glyph — the original per-type icons
+    /// (PowerShell = 🌐 globe), coloured via <see cref="KindColor"/>.</summary>
     public static string KindGlyph(SessionKind k) => k switch
     {
         SessionKind.PowerShell => "🌐",
-        _ => "●",
+        SessionKind.Cmd => ">_",
+        SessionKind.Bash => "$",
+        SessionKind.Wsl => "🐧",
+        _ => "SSH",
     };
 
     private static Color BarColor(ConnectionState s) => s switch
