@@ -47,10 +47,65 @@ public class LocalShellConnection : ITerminalBackend
         get
         {
             var sys = Environment.GetFolderPath(Environment.SpecialFolder.System);
-            return _cfg.Kind == SessionKind.Cmd
-                ? Path.Combine(sys, "cmd.exe")
-                : Path.Combine(sys, "WindowsPowerShell", "v1.0", "powershell.exe");
+            switch (_cfg.Kind)
+            {
+                case SessionKind.Cmd:
+                    return Quote(Path.Combine(sys, "cmd.exe"));
+
+                case SessionKind.Bash:
+                {
+                    var bash = FindBash()
+                        ?? throw new FileNotFoundException(
+                            "bash.exe was not found. Install Git for Windows, or use a WSL session instead.");
+                    // A login shell so ~/.bash_profile and the Git tooling are on PATH.
+                    return Quote(bash) + " --login -i";
+                }
+
+                case SessionKind.Wsl:
+                    // wsl.exe with no arguments starts the default distribution's login shell.
+                    return Quote(Path.Combine(sys, "wsl.exe"));
+
+                default:
+                    return Quote(Path.Combine(sys, "WindowsPowerShell", "v1.0", "powershell.exe"));
+            }
         }
+    }
+
+    private static string Quote(string path) => "\"" + path + "\"";
+
+    /// <summary>Locate Git for Windows' bash.exe: standard install roots, then PATH.</summary>
+    private static string? FindBash()
+    {
+        foreach (var root in new[]
+                 {
+                     Environment.GetEnvironmentVariable("ProgramFiles"),
+                     Environment.GetEnvironmentVariable("ProgramFiles(x86)"),
+                     Environment.GetEnvironmentVariable("ProgramW6432"),
+                     Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs"),
+                 })
+        {
+            if (string.IsNullOrEmpty(root)) continue;
+            var candidate = Path.Combine(root, "Git", "bin", "bash.exe");
+            if (File.Exists(candidate)) return candidate;
+        }
+
+        // System32\bash.exe is the WSL shim — that's the separate WSL session type,
+        // so skip it here and keep Bash meaning Git Bash.
+        var system32 = Environment.GetFolderPath(Environment.SpecialFolder.System);
+        foreach (var dir in (Environment.GetEnvironmentVariable("PATH") ?? "").Split(';'))
+        {
+            if (string.IsNullOrWhiteSpace(dir)) continue;
+            try
+            {
+                var trimmed = dir.Trim();
+                if (string.Equals(trimmed.TrimEnd('\\'), system32.TrimEnd('\\'),
+                        StringComparison.OrdinalIgnoreCase)) continue;
+                var candidate = Path.Combine(trimmed, "bash.exe");
+                if (File.Exists(candidate)) return candidate;
+            }
+            catch { /* malformed PATH entry */ }
+        }
+        return null;
     }
 
     public Task ConnectAsync(int cols, int rows)

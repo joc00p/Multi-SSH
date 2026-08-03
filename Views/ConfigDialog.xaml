@@ -55,6 +55,8 @@
                             <ComboBoxItem Content="SSH (remote host)"/>
                             <ComboBoxItem Content="Local — PowerShell"/>
                             <ComboBoxItem Content="Local — Command Prompt"/>
+                            <ComboBoxItem Content="Local — Bash (Git for Windows)"/>
+                            <ComboBoxItem Content="Local — WSL"/>
                         </ComboBox>
 
                         <TextBlock x:Name="HostLabel" Text="Host Name (or IP)" VerticalAlignment="Center" Grid.Row="1"/>

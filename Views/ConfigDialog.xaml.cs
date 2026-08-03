@@ -96,7 +96,7 @@ public partial class ConfigDialog : Window
 
         KindHint.Text = ssh
             ? "Connection type: SSH (port 22)"
-            : $"Connection type: local {(SelectedKind == SessionKind.Cmd ? "Command Prompt" : "PowerShell")} "
+            : $"Connection type: local {SessionConfig.KindName(SelectedKind)} "
               + "— runs on this PC, no host or login needed.";
     }
 
