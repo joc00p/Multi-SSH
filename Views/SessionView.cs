@@ -101,6 +101,7 @@ public class SessionView : Grid
         };
         SetRow(_term, 0);
         Children.Add(_term);
+        AddTerminalMenuItems();
 
         _status = new TextBlock
         {
@@ -335,6 +336,43 @@ public class SessionView : Grid
     public void StartRecording(string folder) => _recorder.Start(folder, TabTitle);
 
     public void StopRecording() => _recorder.Stop();
+
+    private MenuItem? _recordMenuItem;
+
+    /// <summary>Add "Record" and "Open recordings folder" to the terminal's right-click menu.</summary>
+    private void AddTerminalMenuItems()
+    {
+        if (_term.ContextMenu is not ContextMenu menu) return;
+        menu.Items.Add(new Separator());
+        _recordMenuItem = new MenuItem { Header = "Start Recording (this session)" };
+        _recordMenuItem.Click += (_, _) => ToggleRecording();
+        menu.Items.Add(_recordMenuItem);
+        var openFolder = new MenuItem { Header = "Open Recordings Folder…" };
+        openFolder.Click += (_, _) => OpenRecordingsFolder();
+        menu.Items.Add(openFolder);
+        menu.Opened += (_, _) =>
+            _recordMenuItem.Header = IsRecording ? "Stop Recording (this session)" : "Start Recording (this session)";
+    }
+
+    private void ToggleRecording()
+    {
+        if (IsRecording) StopRecording();
+        else StartRecording(AppSettings.Current.EffectiveRecordingsFolder);
+    }
+
+    private void OpenRecordingsFolder()
+    {
+        try
+        {
+            var folder = AppSettings.Current.EffectiveRecordingsFolder;
+            System.IO.Directory.CreateDirectory(folder);
+            if (!string.IsNullOrEmpty(RecordingFile) && System.IO.File.Exists(RecordingFile))
+                System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{RecordingFile}\"");
+            else
+                System.Diagnostics.Process.Start("explorer.exe", $"\"{folder}\"");
+        }
+        catch { /* explorer unavailable */ }
+    }
 
     public void Close()
     {

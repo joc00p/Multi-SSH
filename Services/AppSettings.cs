@@ -1,5 +1,6 @@
 using System.IO;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using MultiSSH.Models;
 
 namespace MultiSSH.Services;
@@ -21,6 +22,15 @@ public class AppSettings
     /// <summary>Session-manager folder paths (e.g. "Client A", "Client A/Prod"),
     /// including empty folders so structure persists even with no connections in it.</summary>
     public List<string> SessionFolders { get; set; } = new();
+
+    /// <summary>Folder where session recordings (transcripts) are written.
+    /// Empty = the default (Documents\Multi-SSH Recordings).</summary>
+    public string RecordingsFolder { get; set; } = "";
+
+    /// <summary>Resolved recordings folder (falls back to the default when unset).</summary>
+    [JsonIgnore]
+    public string EffectiveRecordingsFolder =>
+        string.IsNullOrWhiteSpace(RecordingsFolder) ? Recorder.DefaultFolder : RecordingsFolder;
 
     /// <summary>Which edge of the terminal area the session manager is docked to:
     /// "Left", "Right" or "Bottom".</summary>
