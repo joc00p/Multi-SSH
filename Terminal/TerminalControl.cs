@@ -74,7 +74,45 @@ public class TerminalControl : Control
         _blinkTimer.Tick += (_, _) => { _cursorOn = !_cursorOn; _dirty = true; };
         _blinkTimer.Start();
 
+        ContextMenu = BuildContextMenu();
+
         Loaded += (_, _) => Focus();
+    }
+
+    private ContextMenu BuildContextMenu()
+    {
+        var copy = new MenuItem { Header = "Copy", InputGestureText = "Ctrl+Shift+C" };
+        copy.Click += (_, _) => CopySelection();
+        var paste = new MenuItem { Header = "Paste", InputGestureText = "Ctrl+Shift+V" };
+        paste.Click += (_, _) => Paste();
+        var selectAll = new MenuItem { Header = "Select All" };
+        selectAll.Click += (_, _) => SelectAll();
+        var clear = new MenuItem { Header = "Clear Selection" };
+        clear.Click += (_, _) => { _selStart = _selEnd = null; _dirty = true; };
+
+        var menu = new ContextMenu();
+        menu.Items.Add(copy);
+        menu.Items.Add(paste);
+        menu.Items.Add(new Separator());
+        menu.Items.Add(selectAll);
+        menu.Items.Add(clear);
+        menu.Opened += (_, _) =>
+        {
+            copy.IsEnabled = HasSelection();
+            try { paste.IsEnabled = Clipboard.ContainsText(); } catch { paste.IsEnabled = true; }
+        };
+        return menu;
+    }
+
+    private bool HasSelection()
+        => _selStart != null && _selEnd != null && !_selStart.Value.Equals(_selEnd.Value);
+
+    private void SelectAll()
+    {
+        int history = _buffer.Scrollback.Count;
+        _selStart = (0, 0);
+        _selEnd = (history + _buffer.Rows - 1, _buffer.Cols - 1);
+        _dirty = true;
     }
 
     public TerminalBuffer Buffer => _buffer;
@@ -362,11 +400,7 @@ public class TerminalControl : Control
         base.OnMouseLeftButtonUp(e);
     }
 
-    protected override void OnMouseRightButtonUp(MouseButtonEventArgs e)
-    {
-        if (_cfg.PasteOnRightClick) Paste();
-        base.OnMouseRightButtonUp(e);
-    }
+    // Right-click now opens the Copy/Paste context menu (WPF shows it automatically).
 
     private void CopySelection()
     {
