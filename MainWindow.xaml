@@ -67,11 +67,36 @@
             </DockPanel>
         </Border>
 
+        <!-- Terminal space + dockable session manager.
+             The manager can sit on the Left, Right or Bottom edge, or be
+             minimized to a thin tab on that same edge. -->
+        <Grid x:Name="MainArea">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="LeftCol" Width="Auto"/>
+                <ColumnDefinition x:Name="LeftSplitCol" Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition x:Name="RightSplitCol" Width="Auto"/>
+                <ColumnDefinition x:Name="RightCol" Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition x:Name="BottomSplitRow" Height="Auto"/>
+                <RowDefinition x:Name="BottomRow" Height="Auto"/>
+            </Grid.RowDefinitions>
+
         <!-- Sidebar: session manager tree (folders -> connections) -->
-        <Border DockPanel.Dock="Left" Width="250" Background="#25252B">
+        <Border x:Name="SidebarBorder" Background="#25252B">
             <DockPanel>
                 <DockPanel DockPanel.Dock="Top" Margin="10,10,8,6">
-                    <Button x:Name="NewFolderBtn" DockPanel.Dock="Right" Content="🗀+" Padding="6,2" Margin="0"
+                    <Button x:Name="MinimizeSidebarBtn" DockPanel.Dock="Right" Content="—" Padding="6,2" Margin="0"
+                            Style="{StaticResource ToolBtn}" ToolTip="Minimize to a tab" Click="MinimizeSidebar_Click"/>
+                    <Button x:Name="DockBottomBtn" DockPanel.Dock="Right" Content="▤" Padding="6,2" Margin="0,0,4,0"
+                            Style="{StaticResource ToolBtn}" ToolTip="Dock to bottom" Click="DockBottom_Click"/>
+                    <Button x:Name="DockRightBtn" DockPanel.Dock="Right" Content="◨" Padding="6,2" Margin="0,0,4,0"
+                            Style="{StaticResource ToolBtn}" ToolTip="Dock to right" Click="DockRight_Click"/>
+                    <Button x:Name="DockLeftBtn" DockPanel.Dock="Right" Content="◧" Padding="6,2" Margin="0,0,4,0"
+                            Style="{StaticResource ToolBtn}" ToolTip="Dock to left" Click="DockLeft_Click"/>
+                    <Button x:Name="NewFolderBtn" DockPanel.Dock="Right" Content="🗀+" Padding="6,2" Margin="0,0,4,0"
                             Style="{StaticResource ToolBtn}" ToolTip="New folder" Click="NewFolder_Click"/>
                     <TextBlock Text="SESSION MANAGER" Foreground="#888" FontSize="11" FontWeight="Bold"
                                VerticalAlignment="Center"/>
@@ -127,12 +152,26 @@
             </DockPanel>
         </Border>
 
+        <!-- Minimized state: a thin tab on the docked edge that restores the panel -->
+        <Border x:Name="SidebarTab" Background="#25252B" Visibility="Collapsed"
+                Cursor="Hand" MouseLeftButtonUp="SidebarTab_Click"
+                ToolTip="Show the session manager">
+            <TextBlock x:Name="SidebarTabText" Text="SESSION MANAGER" Foreground="#888"
+                       FontSize="11" FontWeight="Bold" Margin="6"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        </Border>
+
+        <!-- Drag to resize the docked panel -->
+        <GridSplitter x:Name="SidebarSplitter" Background="#3A3A44"
+                      DragCompleted="SidebarSplitter_DragCompleted"/>
+
         <!-- Content host -->
-        <Grid x:Name="ContentHost" Background="#12121A">
+        <Grid x:Name="ContentHost" Grid.Column="2" Grid.Row="0" Background="#12121A">
             <TextBlock x:Name="EmptyHint"
                        Text="No sessions open.&#x0a;Click &quot;＋ New Session&quot; or double-click a saved session."
                        Foreground="#666" TextAlignment="Center"
                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        </Grid>
         </Grid>
     </DockPanel>
 </Window>

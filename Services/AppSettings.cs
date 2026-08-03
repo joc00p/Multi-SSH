@@ -22,6 +22,19 @@ public class AppSettings
     /// including empty folders so structure persists even with no connections in it.</summary>
     public List<string> SessionFolders { get; set; } = new();
 
+    /// <summary>Which edge of the terminal area the session manager is docked to:
+    /// "Left", "Right" or "Bottom".</summary>
+    public string SessionManagerDock { get; set; } = "Left";
+
+    /// <summary>True when the session manager is minimized to its edge tab.</summary>
+    public bool SessionManagerCollapsed { get; set; }
+
+    /// <summary>Panel size when docked to a side (Left/Right).</summary>
+    public double SessionManagerWidth { get; set; } = 250;
+
+    /// <summary>Panel size when docked to the bottom.</summary>
+    public double SessionManagerHeight { get; set; } = 200;
+
     private static readonly string Dir =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Multi-SSH");
     private static readonly string FilePath = Path.Combine(Dir, "settings.json");
