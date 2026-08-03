@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
+using MultiSSH.Models;
 
 namespace MultiSSH.Views;
 
@@ -38,13 +39,26 @@ public class SessionPane : Border
 
         var dock = new DockPanel { LastChildFill = true };
 
+        // Connection-type ball (SSH / PowerShell / Cmd / Bash / WSL) — shown before
+        // the status dot, which it does NOT replace.
+        var typeBall = new Ellipse
+        {
+            Width = 10,
+            Height = 10,
+            Margin = new Thickness(8, 0, 0, 0),
+            VerticalAlignment = VerticalAlignment.Center,
+            Fill = new SolidColorBrush(SessionView.KindColor(session.Config.Kind)),
+            ToolTip = "Connection type: " + SessionConfig.KindName(session.Config.Kind),
+        };
+
         _statusDot = new Ellipse
         {
             Width = 9,
             Height = 9,
-            Margin = new Thickness(8, 0, 0, 0),
+            Margin = new Thickness(6, 0, 0, 0),
             VerticalAlignment = VerticalAlignment.Center,
             Fill = new SolidColorBrush(SessionView.DotColor(session.State)),
+            ToolTip = "Connection status",
         };
 
         _titleText = new TextBlock
@@ -66,8 +80,9 @@ public class SessionPane : Border
         btns.Children.Add(closeBtn);
         DockPanel.SetDock(btns, Dock.Right);
 
-        // Left side of the header: status dot + title.
+        // Left side of the header: type ball + status dot + title.
         var left = new StackPanel { Orientation = Orientation.Horizontal };
+        left.Children.Add(typeBall);
         left.Children.Add(_statusDot);
         left.Children.Add(_titleText);
 
