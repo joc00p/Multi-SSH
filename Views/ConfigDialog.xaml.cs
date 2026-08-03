@@ -136,6 +136,10 @@ public partial class ConfigDialog : Window
         c.ScrollbackLines = ParseInt(ScrollbackBox.Text, 2000);
         c.FontSize = ParseDouble(FontSizeBox.Text, 14);
 
+        // A key file means public-key auth — use the key and never prompt for a password.
+        if (!string.IsNullOrWhiteSpace(c.PrivateKeyPath))
+            c.Auth = AuthMethod.PublicKey;
+
         Result = c;
         DialogResult = true;
     }
