@@ -17,6 +17,15 @@
             <!-- Toolbar/sidebar buttons never take keyboard focus away from the terminal. -->
             <Setter Property="Focusable" Value="False"/>
         </Style>
+
+        <!-- Compact variant so the four view layouts fit in a 2x2 block -->
+        <Style TargetType="Button" x:Key="ViewBtn" BasedOn="{StaticResource ToolBtn}">
+            <Setter Property="Padding" Value="6,1"/>
+            <Setter Property="Margin" Value="0,0,3,3"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="MinWidth" Value="58"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        </Style>
     </Window.Resources>
 
     <DockPanel>
@@ -34,8 +43,18 @@
                     <Button x:Name="SettingsBtn" Content="⚙ Settings" Style="{StaticResource ToolBtn}" Click="Settings_Click"/>
                     <Separator Margin="6,0" Background="#3A3A44"/>
                     <TextBlock Text="View:" Foreground="#AAA" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                    <Button x:Name="TabsBtn" Content="▭ Tabs" Style="{StaticResource ToolBtn}" Click="Tabs_Click"/>
-                    <Button x:Name="TilesBtn" Content="▦ Tiles" Style="{StaticResource ToolBtn}" Click="Tiles_Click"/>
+                    <!-- Four layouts in a compact 2x2 block -->
+                    <UniformGrid Rows="2" Columns="2" VerticalAlignment="Center">
+                        <Button x:Name="TabsBtn" Content="▭ Tabs" Style="{StaticResource ViewBtn}"
+                                ToolTip="One session at a time, in tabs" Click="Tabs_Click"/>
+                        <Button x:Name="TilesBtn" Content="▦ Grid" Style="{StaticResource ViewBtn}"
+                                ToolTip="Tile every session in a grid" Click="Tiles_Click"/>
+                        <Button x:Name="TilesVBtn" Content="▥ Vert" Style="{StaticResource ViewBtn}"
+                                ToolTip="Tile vertically — sessions side by side in columns" Click="TilesVertical_Click"/>
+                        <Button x:Name="LayeredBtn" Content="⧉ Layer" Style="{StaticResource ViewBtn}"
+                                ToolTip="Layered — sessions cascaded; click one to bring it to the front"
+                                Click="Layered_Click"/>
+                    </UniformGrid>
                 </StackPanel>
 
                 <!-- Right: broadcast one command to every open session -->
