@@ -19,7 +19,7 @@ public partial class MainWindow : Window
         Tabs,
         /// <summary>Every session tiled in a roughly square grid.</summary>
         Tiles,
-        /// <summary>Every session side by side in full-height columns.</summary>
+        /// <summary>Every session in a full-width row, stacked top to bottom.</summary>
         TilesVertical,
         /// <summary>Sessions cascaded, each offset from the one behind it.</summary>
         Layered,
@@ -822,7 +822,7 @@ public partial class MainWindow : Window
 
     /// <summary>
     /// Tile every session: a roughly square grid, or — when <paramref name="vertical"/>
-    /// is set — one full-height column each, side by side.
+    /// is set — one full-width row each, stacked top to bottom.
     /// </summary>
     private void BuildTiles(bool vertical)
     {
@@ -830,8 +830,8 @@ public partial class MainWindow : Window
         int n = _panes.Count;
         if (vertical)
         {
-            grid.Rows = 1;
-            grid.Columns = n;
+            grid.Rows = n;
+            grid.Columns = 1;
         }
         else
         {

@@ -50,7 +50,7 @@
                         <Button x:Name="TilesBtn" Content="▦ Grid" Style="{StaticResource ViewBtn}"
                                 ToolTip="Tile every session in a grid" Click="Tiles_Click"/>
                         <Button x:Name="TilesVBtn" Content="▥ Vert" Style="{StaticResource ViewBtn}"
-                                ToolTip="Tile vertically — sessions side by side in columns" Click="TilesVertical_Click"/>
+                                ToolTip="Tile vertically — sessions stacked in full-width rows" Click="TilesVertical_Click"/>
                         <Button x:Name="LayeredBtn" Content="⧉ Layer" Style="{StaticResource ViewBtn}"
                                 ToolTip="Layered — sessions cascaded; click one to bring it to the front"
                                 Click="Layered_Click"/>
