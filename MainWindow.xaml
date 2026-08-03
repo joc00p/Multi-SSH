@@ -26,6 +26,29 @@
             <Setter Property="MinWidth" Value="58"/>
             <Setter Property="HorizontalContentAlignment" Value="Left"/>
         </Style>
+
+        <!-- Expand/collapse triangle for the session-manager tree. -->
+        <Style x:Key="TreeToggle" TargetType="ToggleButton">
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Width" Value="16"/>
+            <Setter Property="Height" Value="16"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border Background="Transparent" Width="16" Height="16">
+                            <Path x:Name="Arrow" Fill="#B0B0B0"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center"
+                                  Data="M 0 0 L 4 4 L 0 8 Z"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Arrow" Property="Data" Value="M 0 0 L 8 0 L 4 4 Z"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <DockPanel>
@@ -159,8 +182,46 @@
                         <Style TargetType="TreeViewItem">
                             <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
                             <Setter Property="Foreground" Value="White"/>
-                            <!-- Stretch the row so its content can reach the right edge. -->
                             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                            <!-- Custom template: the header column is star-width so each row
+                                 fills the sidebar and the docked ✕ reaches the right edge. -->
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="TreeViewItem">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="16"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            <ToggleButton x:Name="Expander" Grid.Row="0" Grid.Column="0"
+                                                          Style="{StaticResource TreeToggle}" ClickMode="Press"
+                                                          IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"/>
+                                            <Border x:Name="Bd" Grid.Row="0" Grid.Column="1"
+                                                    Background="{TemplateBinding Background}"
+                                                    Padding="2,2,0,2" SnapsToDevicePixels="True">
+                                                <ContentPresenter x:Name="PART_Header" ContentSource="Header"
+                                                                  HorizontalAlignment="Stretch"/>
+                                            </Border>
+                                            <ItemsPresenter x:Name="ItemsHost" Grid.Row="1" Grid.Column="1"/>
+                                        </Grid>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsExpanded" Value="False">
+                                                <Setter TargetName="ItemsHost" Property="Visibility" Value="Collapsed"/>
+                                            </Trigger>
+                                            <Trigger Property="HasItems" Value="False">
+                                                <Setter TargetName="Expander" Property="Visibility" Value="Hidden"/>
+                                            </Trigger>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter TargetName="Bd" Property="Background" Value="#403B78FF"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
                         </Style>
                     </TreeView.ItemContainerStyle>
                     <TreeView.ContextMenu>
