@@ -61,7 +61,14 @@
                     <Button x:Name="OpenBtn" Content="▶ Open" Style="{StaticResource ToolBtn}" Click="Open_Click"/>
                     <Button x:Name="EditBtn" Content="✎ Edit" Style="{StaticResource ToolBtn}" Click="Edit_Click"/>
                     <Button x:Name="DupBtn" Content="⧉ Duplicate" Style="{StaticResource ToolBtn}" Click="Duplicate_Click"/>
-                    <Button x:Name="ReconnectBtn" Content="⟳ Reconnect" Style="{StaticResource ToolBtn}" Click="Reconnect_Click"/>
+                    <Button x:Name="RecordBtn" Style="{StaticResource ToolBtn}" Click="Record_Click"
+                            ToolTip="Record all sessions' output to transcript files">
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse x:Name="RecordDot" Width="9" Height="9" Margin="0,0,5,0"
+                                     VerticalAlignment="Center" Fill="#777777"/>
+                            <TextBlock x:Name="RecordLabel" Text="Record" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
                     <Button x:Name="HotKeysBtn" Content="⌨ Hot Keys" Style="{StaticResource ToolBtn}" Click="HotKeys_Click"/>
                     <Button x:Name="SettingsBtn" Content="⚙ Settings" Style="{StaticResource ToolBtn}" Click="Settings_Click"/>
                     <Separator Margin="6,0" Background="#3A3A44"/>
