@@ -57,6 +57,8 @@ public class TerminalBuffer
         if (cols < 1) cols = 1;
         if (rows == Rows && cols == Cols) return;
 
+        int oldRows = Rows;
+
         var newGrid = new Cell[rows][];
         for (int r = 0; r < rows; r++)
         {
@@ -66,11 +68,11 @@ public class TerminalBuffer
         }
 
         // Copy over whatever we can from the old grid (bottom-aligned).
-        int copyRows = Math.Min(rows, Rows);
+        int copyRows = Math.Min(rows, oldRows);
         int copyCols = Math.Min(cols, Cols);
         for (int r = 0; r < copyRows; r++)
         {
-            int srcRow = Rows - copyRows + r;
+            int srcRow = oldRows - copyRows + r;
             int dstRow = rows - copyRows + r;
             for (int c = 0; c < copyCols; c++)
                 newGrid[dstRow][c] = _grid[srcRow][c];
@@ -82,7 +84,10 @@ public class TerminalBuffer
         _scrollTop = 0;
         _scrollBottom = rows - 1;
         CursorX = Math.Min(CursorX, cols - 1);
-        CursorY = Math.Min(CursorY, rows - 1);
+        // The content was bottom-aligned (shifted by rows-oldRows), so shift the cursor by
+        // the same amount instead of merely clamping — otherwise a grow leaves the cursor
+        // stranded in the middle while the prompt sits at the bottom.
+        CursorY = Math.Clamp(CursorY + (rows - oldRows), 0, rows - 1);
         WrapPending = false;
     }
 
