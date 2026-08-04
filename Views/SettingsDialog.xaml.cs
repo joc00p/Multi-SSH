@@ -21,6 +21,16 @@ public partial class SettingsDialog : Window
         SelectScheme(s.DefaultColorScheme);
         RecordFolderBox.Text = s.RecordingsFolder;
 
+        KeepAliveBox.Text = s.DefaultKeepAliveSeconds.ToString();
+        ChkNoDelay.IsChecked = s.DefaultTcpNoDelay;
+        ChkSoKeepalive.IsChecked = s.DefaultSoKeepalive;
+        (s.DefaultIpVersion switch
+        {
+            "IPv4" => RbIpv4,
+            "IPv6" => RbIpv6,
+            _ => RbIpAuto,
+        }).IsChecked = true;
+
         ColsBox.Text = s.DefaultColumns.ToString();
         RowsBox.Text = s.DefaultRows.ToString();
         ScrollbackBox.Text = s.DefaultScrollbackLines.ToString();
@@ -94,6 +104,13 @@ public partial class SettingsDialog : Window
         s.DefaultFontSize = double.TryParse(FontSizeBox.Text, out var sz) && sz > 0 ? sz : 14;
         s.DefaultColorScheme = (SchemeCombo.SelectedItem as ComboBoxItem)?.Content as string ?? "Campbell";
         s.RecordingsFolder = RecordFolderBox.Text.Trim();
+
+        s.DefaultKeepAliveSeconds = int.TryParse(KeepAliveBox.Text, out var ka) && ka >= 0 ? ka : 0;
+        s.DefaultTcpNoDelay = ChkNoDelay.IsChecked == true;
+        s.DefaultSoKeepalive = ChkSoKeepalive.IsChecked == true;
+        s.DefaultIpVersion =
+            RbIpv4.IsChecked == true ? "IPv4" :
+            RbIpv6.IsChecked == true ? "IPv6" : "Auto";
 
         s.DefaultColumns = int.TryParse(ColsBox.Text, out var c) && c > 0 ? c : 80;
         s.DefaultRows = int.TryParse(RowsBox.Text, out var r) && r > 0 ? r : 24;

@@ -49,6 +49,26 @@
                     </Border>
                 </Grid>
 
+                <!-- Keepalive -->
+                <TextBlock Text="Sending of null packets to keep session active" FontWeight="Bold" Margin="0,16,0,8"/>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Seconds between keepalives (0 to turn off)" VerticalAlignment="Center" Width="280"/>
+                    <TextBox x:Name="KeepAliveBox" Width="60" VerticalContentAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Low-level TCP -->
+                <TextBlock Text="Low-level TCP connection options" FontWeight="Bold" Margin="0,16,0,8"/>
+                <CheckBox x:Name="ChkNoDelay" Content="Disable Nagle's algorithm (TCP_NODELAY option)" Margin="0,3"/>
+                <CheckBox x:Name="ChkSoKeepalive" Content="Enable TCP keepalives (SO_KEEPALIVE option)" Margin="0,3"/>
+
+                <!-- IP version -->
+                <TextBlock Text="Internet protocol version" FontWeight="Bold" Margin="0,16,0,8"/>
+                <StackPanel Orientation="Horizontal">
+                    <RadioButton x:Name="RbIpAuto" GroupName="IpVer" Content="Auto" Margin="0,0,16,0"/>
+                    <RadioButton x:Name="RbIpv4"   GroupName="IpVer" Content="IPv4" Margin="0,0,16,0"/>
+                    <RadioButton x:Name="RbIpv6"   GroupName="IpVer" Content="IPv6"/>
+                </StackPanel>
+
                 <!-- Window size -->
                 <TextBlock Text="Set the size of the window" FontWeight="Bold" Margin="0,16,0,8"/>
                 <StackPanel Orientation="Horizontal">

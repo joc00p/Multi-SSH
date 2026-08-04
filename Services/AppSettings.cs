@@ -50,6 +50,20 @@ public class AppSettings
     public string EffectiveRecordingsFolder =>
         string.IsNullOrWhiteSpace(RecordingsFolder) ? Recorder.DefaultFolder : RecordingsFolder;
 
+    // ---- Connection tuning defaults ----
+
+    /// <summary>Seconds between null keepalive packets (0 = disabled).</summary>
+    public int DefaultKeepAliveSeconds { get; set; } = 0;
+
+    /// <summary>Default for TCP_NODELAY (disable Nagle's algorithm).</summary>
+    public bool DefaultTcpNoDelay { get; set; } = true;
+
+    /// <summary>Default for SO_KEEPALIVE (OS-level TCP keepalives).</summary>
+    public bool DefaultSoKeepalive { get; set; } = false;
+
+    /// <summary>Preferred IP version for new sessions: "Auto", "IPv4", or "IPv6".</summary>
+    public string DefaultIpVersion { get; set; } = "Auto";
+
     /// <summary>Which edge of the terminal area the session manager is docked to:
     /// "Left", "Right" or "Bottom".</summary>
     public string SessionManagerDock { get; set; } = "Left";
