@@ -44,6 +44,8 @@ public partial class MainWindow : Window
     // Insertion line shown while dragging a connection to a new position.
     private InsertionAdorner? _insertion;
     private TreeViewItem? _insertionHost;
+    // Drag-start position for reordering open panes via their tab headers.
+    private Point _paneDragStart;
 
     // Unsubscribe actions for the current tab strip's per-session event handlers.
     // Flushed on every RebuildContent so tab headers don't leak handlers/visuals.
@@ -847,6 +849,7 @@ public partial class MainWindow : Window
         pane.ReconnectRequested += p => _ = p.Session.ReconnectAsync();
         pane.Activated += SetActive;
         pane.MaximizeToggleRequested += ToggleMaximize;
+        pane.ReorderRequested += (dragged, target, after) => ReorderPane(dragged, target, after);
         // When the remote shell exits, destroy its window automatically.
         view.ShellExited += _ => ClosePane(pane);
 
@@ -939,7 +942,11 @@ public partial class MainWindow : Window
             pane.HeaderVisible = false;
             pane.Active = false;
             pane.Margin = new Thickness(0);
-            var item = new TabItem { Content = pane, Tag = pane, Header = BuildTabHeader(pane) };
+            var item = new TabItem { Content = pane, Tag = pane, Header = BuildTabHeader(pane), AllowDrop = true };
+            item.PreviewMouseLeftButtonDown += (_, e) => _paneDragStart = e.GetPosition(null);
+            item.PreviewMouseMove += TabItem_PreviewMouseMove;
+            item.DragOver += TabItem_DragOver;
+            item.Drop += TabItem_Drop;
             tabs.Items.Add(item);
             if (ReferenceEquals(pane, _active)) item.IsSelected = true;
         }
@@ -1003,6 +1010,46 @@ public partial class MainWindow : Window
         panel.Children.Add(title);
         panel.Children.Add(close);
         return panel;
+    }
+
+    // ---- drag a tab to reorder the open sessions ----
+
+    private void TabItem_PreviewMouseMove(object sender, MouseEventArgs e)
+    {
+        if (e.LeftButton != MouseButtonState.Pressed) return;
+        if (sender is not TabItem { Tag: SessionPane pane } ti) return;
+        var p = e.GetPosition(null);
+        if (Math.Abs(p.X - _paneDragStart.X) < SystemParameters.MinimumHorizontalDragDistance &&
+            Math.Abs(p.Y - _paneDragStart.Y) < SystemParameters.MinimumVerticalDragDistance) return;
+        DragDrop.DoDragDrop(ti, new DataObject(SessionPane.PaneDragFormat, pane), DragDropEffects.Move);
+    }
+
+    private void TabItem_DragOver(object sender, DragEventArgs e)
+    {
+        e.Effects = e.Data.GetDataPresent(SessionPane.PaneDragFormat) ? DragDropEffects.Move : DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    private void TabItem_Drop(object sender, DragEventArgs e)
+    {
+        if (e.Data.GetData(SessionPane.PaneDragFormat) is not SessionPane dragged) return;
+        if (sender is not TabItem { Tag: SessionPane target } ti) return;
+        bool after = e.GetPosition(ti).X > ti.ActualWidth / 2;
+        ReorderPane(dragged, target, after);
+        e.Handled = true;
+    }
+
+    /// <summary>Move an open pane before/after another in the tab/tile order, then relayout.</summary>
+    private void ReorderPane(SessionPane dragged, SessionPane target, bool after)
+    {
+        if (ReferenceEquals(dragged, target)) return;
+        if (!_panes.Contains(dragged) || !_panes.Contains(target)) return;
+        _panes.Remove(dragged);
+        int idx = _panes.IndexOf(target);
+        if (after) idx++;
+        _panes.Insert(Math.Clamp(idx, 0, _panes.Count), dragged);
+        _active = dragged;
+        RebuildContent();
     }
 
     /// <summary>

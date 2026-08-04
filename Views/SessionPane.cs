@@ -27,6 +27,13 @@ public class SessionPane : Border
     public event Action<SessionPane>? Activated;
     /// <summary>Raised when the header is double-clicked — toggle maximize/restore.</summary>
     public event Action<SessionPane>? MaximizeToggleRequested;
+    /// <summary>Raised when this pane's header is dragged onto another pane: (dragged, target, after).</summary>
+    public event Action<SessionPane, SessionPane, bool>? ReorderRequested;
+
+    /// <summary>DataObject format used when dragging a pane (header) or a tab to reorder.</summary>
+    public const string PaneDragFormat = "MultiSSH.SessionPane";
+
+    private Point _headerDragStart;
 
     public SessionPane(SessionView session)
     {
@@ -97,6 +104,32 @@ public class SessionPane : Border
             if (e.ClickCount == 2) MaximizeToggleRequested?.Invoke(this);
         };
         PreviewMouseDown += (_, _) => Activated?.Invoke(this);
+
+        // Drag the header onto another pane to reorder (tiled / layered views).
+        _header.PreviewMouseLeftButtonDown += (_, e) => _headerDragStart = e.GetPosition(null);
+        _header.PreviewMouseMove += (_, e) =>
+        {
+            if (e.LeftButton != MouseButtonState.Pressed) return;
+            var p = e.GetPosition(null);
+            if (Math.Abs(p.X - _headerDragStart.X) < SystemParameters.MinimumHorizontalDragDistance &&
+                Math.Abs(p.Y - _headerDragStart.Y) < SystemParameters.MinimumVerticalDragDistance) return;
+            DragDrop.DoDragDrop(this, new DataObject(PaneDragFormat, this), DragDropEffects.Move);
+        };
+        AllowDrop = true;
+        DragOver += (_, e) =>
+        {
+            e.Effects = e.Data.GetDataPresent(PaneDragFormat) ? DragDropEffects.Move : DragDropEffects.None;
+            e.Handled = true;
+        };
+        Drop += (_, e) =>
+        {
+            if (e.Data.GetData(PaneDragFormat) is SessionPane dragged && !ReferenceEquals(dragged, this))
+            {
+                bool after = e.GetPosition(this).X > ActualWidth / 2;
+                ReorderRequested?.Invoke(dragged, this, after);
+            }
+            e.Handled = true;
+        };
 
         UpdateStatus();
     }
