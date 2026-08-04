@@ -886,8 +886,17 @@ public partial class MainWindow : Window
 
     // -------------------- content layout --------------------
 
+    /// <summary>Give every open window its "x of y" counter (1-based index of total).</summary>
+    private void UpdatePaneNumbers()
+    {
+        for (int i = 0; i < _panes.Count; i++)
+            _panes[i].Session.SetPosition(i + 1, _panes.Count);
+    }
+
     private void RebuildContent()
     {
+        UpdatePaneNumbers();
+
         // Remove the previous tab strip's per-session handlers before rebuilding, so
         // a pane's StateChanged/TitleChanged don't accumulate a handler (and pin a
         // discarded TabControl) on every open/close/mode-switch/maximize.
