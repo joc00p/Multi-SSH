@@ -190,18 +190,34 @@
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
                         <TextBlock Text="Login username" VerticalAlignment="Center" Grid.Row="0"/>
                         <TextBox x:Name="UserBox" Grid.Row="0" Grid.Column="1" Margin="0,4"/>
-                        <TextBlock Text="Keepalive interval (seconds, 0=off)" Grid.Row="1" VerticalAlignment="Center"/>
-                        <TextBox x:Name="KeepAliveBox" Grid.Row="1" Grid.Column="1" Margin="0,4" Text="30"/>
-                        <TextBlock Text="Connect timeout (seconds)" Grid.Row="2" VerticalAlignment="Center"/>
-                        <TextBox x:Name="TimeoutBox" Grid.Row="2" Grid.Column="1" Margin="0,4" Text="15"/>
-                        <CheckBox x:Name="NoDelayChk" Content="Disable Nagle's algorithm (TCP_NODELAY)"
-                                  Grid.Row="3" Grid.Column="1" Margin="0,8" IsChecked="True"/>
+                        <TextBlock Text="Connect timeout (seconds)" Grid.Row="1" VerticalAlignment="Center"/>
+                        <TextBox x:Name="TimeoutBox" Grid.Row="1" Grid.Column="1" Margin="0,4" Text="15"/>
                     </Grid>
+
+                    <!-- Keepalive -->
+                    <TextBlock Text="Sending of null packets to keep session active" FontWeight="Bold" Margin="0,16,0,8"/>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Seconds between keepalives (0 to turn off)" VerticalAlignment="Center" Width="260"/>
+                        <TextBox x:Name="KeepAliveBox" Width="60" VerticalContentAlignment="Center" Text="0"/>
+                    </StackPanel>
+
+                    <!-- Low-level TCP -->
+                    <TextBlock Text="Low-level TCP connection options" FontWeight="Bold" Margin="0,16,0,8"/>
+                    <CheckBox x:Name="NoDelayChk" Content="Disable Nagle's algorithm (TCP_NODELAY option)" Margin="0,3" IsChecked="True"/>
+                    <CheckBox x:Name="SoKeepaliveChk" Content="Enable TCP keepalives (SO_KEEPALIVE option)" Margin="0,3"/>
+
+                    <!-- IP version -->
+                    <TextBlock Text="Internet protocol version" FontWeight="Bold" Margin="0,16,0,8"/>
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton x:Name="RbIpAuto" GroupName="IpVerConn" Content="Auto" Margin="0,0,16,0" IsChecked="True"/>
+                        <RadioButton x:Name="RbIpv4"   GroupName="IpVerConn" Content="IPv4" Margin="0,0,16,0"/>
+                        <RadioButton x:Name="RbIpv6"   GroupName="IpVerConn" Content="IPv6"/>
+                    </StackPanel>
                 </StackPanel>
 
                 <!-- Authentication -->

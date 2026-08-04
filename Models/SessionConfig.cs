@@ -67,6 +67,8 @@ public class SessionConfig
     public int KeepAliveSeconds { get; set; } = 30;
     public int ConnectTimeoutSeconds { get; set; } = 15;
     public bool TcpNoDelay { get; set; } = true;
+    public bool SoKeepalive { get; set; } = false;
+    public string IpVersion { get; set; } = "Auto";
 
     // --- Terminal ---
     public string TerminalType { get; set; } = "xterm-256color";
