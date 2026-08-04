@@ -207,9 +207,13 @@ public class TerminalBuffer
         for (int i = 0; i < n; i++)
         {
             // Push the top scroll-region line into scrollback (only when region is full screen top).
+            // Copy the row first: the same array is recycled as the new bottom line below,
+            // so storing it by reference would let later writes mutate the saved history.
             if (_scrollTop == 0 && PushErasedToScrollback)
             {
-                _scrollback.Add(_grid[0]);
+                var snapshot = new Cell[Cols];
+                Array.Copy(_grid[0], snapshot, Cols);
+                _scrollback.Add(snapshot);
                 if (_scrollback.Count > MaxScrollback)
                     _scrollback.RemoveAt(0);
             }

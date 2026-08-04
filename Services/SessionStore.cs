@@ -83,7 +83,10 @@ public static class SessionStore
         }
         catch
         {
-            return plain;
+            // DPAPI is unavailable (e.g. FIPS policy). Never fall back to writing the
+            // secret in cleartext — drop it instead so it can't leak to disk. The
+            // session is still saved; the user simply re-enters the password next time.
+            return null;
         }
     }
 

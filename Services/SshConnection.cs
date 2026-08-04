@@ -33,7 +33,9 @@ public class SshConnection : ITerminalBackend
     {
         StatusChanged?.Invoke($"Connecting to {_cfg.Host}:{_cfg.Port} …");
 
-        var info = RemoteAuth.BuildConnectionInfo(_cfg);
+        // Build the connection info off the UI thread — resolving a forced IPv4/IPv6
+        // host does a DNS lookup, which we don't want to block the UI with.
+        var info = await Task.Run(() => RemoteAuth.BuildConnectionInfo(_cfg));
         _client = new SshClient(info);
         _client.KeepAliveInterval = _cfg.KeepAliveSeconds > 0
             ? TimeSpan.FromSeconds(_cfg.KeepAliveSeconds)
@@ -41,6 +43,7 @@ public class SshConnection : ITerminalBackend
         _client.ErrorOccurred += (_, e) => StatusChanged?.Invoke("Error: " + e.Exception.Message);
 
         await Task.Run(() => _client.Connect());
+        RemoteAuth.ApplySocketOptions(_client, _cfg);   // TCP_NODELAY / SO_KEEPALIVE
 
         StatusChanged?.Invoke($"Connected — {_cfg.Username}@{_cfg.Host}");
 

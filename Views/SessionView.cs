@@ -26,7 +26,9 @@ public class SessionView : Grid
     private bool _connected;
     private bool _pendingConnect = true;
     private bool _connecting;   // guards against overlapping connect/reconnect attempts
-    private ConnectionState _state = ConnectionState.Idle;
+    // Written on the UI thread (via SetState's Dispatcher call) but read from backend
+    // read/wait threads in the Closed handler, so mark it volatile to avoid a stale read.
+    private volatile ConnectionState _state = ConnectionState.Idle;
     private readonly Recorder _recorder = new();
 
     public SessionConfig Config => _cfg;

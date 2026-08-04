@@ -21,6 +21,13 @@ public abstract class InteractivePromptBackend : ITerminalBackend
     private readonly StringBuilder _line = new();
     private readonly BlockingCollection<string> _queue = new();
     private readonly object _outLock = new();
+
+    // Decoder for typed input: multi-byte UTF-8 chars (accents, CJK, emoji) arrive
+    // one byte at a time, so we feed bytes through a stateful decoder rather than
+    // casting each byte straight to a char (which would corrupt anything non-ASCII).
+    private readonly System.Text.Decoder _inDecoder = Encoding.UTF8.GetDecoder();
+    private readonly byte[] _inByte = new byte[1];
+    private readonly char[] _inChars = new char[2];
     private Thread? _worker;
     private volatile bool _disposed;
     private bool _connected;
@@ -92,11 +99,16 @@ public abstract class InteractivePromptBackend : ITerminalBackend
                 Output("^C\r\n");
                 WritePrompt();
             }
-            else if (b >= 0x20)             // printable
+            else if (b >= 0x20)             // printable (possibly one byte of a UTF-8 char)
             {
-                var ch = (char)b;
-                _line.Append(ch);
-                Output(ch.ToString());
+                _inByte[0] = b;
+                int n = _inDecoder.GetChars(_inByte, 0, 1, _inChars, 0);
+                if (n > 0)                  // 0 while a multi-byte sequence is still incomplete
+                {
+                    var s = new string(_inChars, 0, n);
+                    _line.Append(s);
+                    Output(s);
+                }
             }
         }
     }

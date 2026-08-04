@@ -18,6 +18,7 @@ public class SftpConnection : InteractivePromptBackend
     {
         _sftp = new SftpClient(RemoteAuth.BuildConnectionInfo(Cfg));
         _sftp.Connect();
+        RemoteAuth.ApplySocketOptions(_sftp, Cfg);   // TCP_NODELAY / SO_KEEPALIVE
         _cwd = _sftp.WorkingDirectory;
     }
 
