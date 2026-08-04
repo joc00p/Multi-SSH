@@ -21,6 +21,7 @@ public class SessionView : Grid
     private readonly SessionConfig _cfg;
     private readonly TerminalControl _term;
     private readonly TextBlock _status;
+    private readonly TextBlock _position;
     private readonly Border _statusBar;
     private ITerminalBackend? _conn;
     private bool _connected;
@@ -102,13 +103,18 @@ public class SessionView : Grid
         {
             _statusBar.SetResourceReference(Border.BackgroundProperty, ThemeManager.HeaderBg);
             _status.SetResourceReference(TextBlock.ForegroundProperty, ThemeManager.Text);
+            _position.SetResourceReference(TextBlock.ForegroundProperty, ThemeManager.MutedText);
         }
         else
         {
             _statusBar.Background = new SolidColorBrush(BarColor(state));
             _status.Foreground = Brushes.White;
+            _position.Foreground = Brushes.White;
         }
     }
+
+    /// <summary>Set the "x of y" open-window counter shown at the bottom of the frame.</summary>
+    public void SetPosition(int index, int total) => _position.Text = $"{index} of {total}";
 
     public SessionView(SessionConfig cfg)
     {
@@ -141,8 +147,20 @@ public class SessionView : Grid
             Text = "Idle",
             Margin = new Thickness(6, 2, 6, 2),
             FontSize = 11,
+            VerticalAlignment = VerticalAlignment.Center,
         };
-        _statusBar = new Border { Child = _status };
+        // "x of y" counter: this window's position and the total number of open windows.
+        _position = new TextBlock
+        {
+            Margin = new Thickness(6, 2, 10, 2),
+            FontSize = 11,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        var statusDock = new DockPanel();
+        DockPanel.SetDock(_position, Dock.Right);
+        statusDock.Children.Add(_position);   // right edge
+        statusDock.Children.Add(_status);     // fills the remainder
+        _statusBar = new Border { Child = statusDock };
         ApplyStatusTheme(ConnectionState.Idle);
         SetRow(_statusBar, 1);
         Children.Add(_statusBar);
