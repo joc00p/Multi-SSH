@@ -94,7 +94,7 @@ public partial class ConfigDialog : Window
     {
         var on = new SolidColorBrush(Color.FromRgb(0x1B, 0x6A, 0xC6));
         var off = new SolidColorBrush(Color.FromRgb(0xBB, 0xBB, 0xBB));
-        var icons = new[] { IconSsh, IconPs, IconCmd, IconBash, IconWsl };
+        var icons = new[] { IconSsh, IconPs, IconCmd, IconBash, IconWsl, IconSftp, IconScp, IconWebdav };
         for (int i = 0; i < icons.Length; i++)
         {
             bool active = i == (int)SelectedKind;
@@ -110,18 +110,21 @@ public partial class ConfigDialog : Window
     private void UpdateKindFieldStates()
     {
         if (HostBox == null) return;   // still initialising
-        bool ssh = SelectedKind == SessionKind.Ssh;
+        bool remote = !SessionConfig.IsLocalKind(SelectedKind);
 
-        HostBox.IsEnabled = PortBox.IsEnabled = ssh;
-        HostLabel.IsEnabled = PortLabel.IsEnabled = ssh;
-        PanelConnection.IsEnabled = PanelAuth.IsEnabled = ssh;
+        HostBox.IsEnabled = PortBox.IsEnabled = remote;
+        HostLabel.IsEnabled = PortLabel.IsEnabled = remote;
+        PanelConnection.IsEnabled = PanelAuth.IsEnabled = remote;
 
         HighlightKindIcon();
 
-        KindHint.Text = ssh
-            ? "Connection type: SSH (port 22)"
-            : $"Connection type: local {SessionConfig.KindName(SelectedKind)} "
-              + "— runs on this PC, no host or login needed.";
+        KindHint.Text = SelectedKind switch
+        {
+            SessionKind.WebDav => "Connection type: WebDAV — put the server host/URL in Host and the port (443 or 80).",
+            var k when SessionConfig.IsLocalKind(k) =>
+                $"Connection type: local {SessionConfig.KindName(k)} — runs on this PC, no host or login needed.",
+            _ => $"Connection type: {SessionConfig.KindName(SelectedKind)} (port {PortBox.Text}).",
+        };
     }
 
     private static void SelectComboByContent(ComboBox combo, string content)

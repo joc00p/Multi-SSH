@@ -72,6 +72,18 @@
                                     ToolTip="Local — WSL" Click="KindIcon_Click">
                                 <TextBlock Text="🐧" FontSize="13" Foreground="#E95420"/>
                             </Button>
+                            <Button x:Name="IconSftp" Tag="5" Style="{StaticResource KindIcon}"
+                                    ToolTip="SFTP — file transfer" Click="KindIcon_Click">
+                                <TextBlock Text="⇅" FontSize="14" FontWeight="Bold" Foreground="#17A2B8"/>
+                            </Button>
+                            <Button x:Name="IconScp" Tag="6" Style="{StaticResource KindIcon}"
+                                    ToolTip="SCP — file copy" Click="KindIcon_Click">
+                                <TextBlock Text="⇄" FontSize="14" FontWeight="Bold" Foreground="#6D28D9"/>
+                            </Button>
+                            <Button x:Name="IconWebdav" Tag="7" Style="{StaticResource KindIcon}"
+                                    ToolTip="WebDAV — HTTP file" Click="KindIcon_Click">
+                                <TextBlock Text="☁" FontSize="13" Foreground="#B45309"/>
+                            </Button>
                         </StackPanel>
                         <TextBlock Text="Basic options for your session" FontWeight="Bold"
                                    VerticalAlignment="Center"/>
@@ -97,6 +109,9 @@
                             <ComboBoxItem Content="Local — Command Prompt"/>
                             <ComboBoxItem Content="Local — Bash (Git for Windows)"/>
                             <ComboBoxItem Content="Local — WSL"/>
+                            <ComboBoxItem Content="SFTP (file transfer)"/>
+                            <ComboBoxItem Content="SCP (file copy)"/>
+                            <ComboBoxItem Content="WebDAV (HTTP file)"/>
                         </ComboBox>
 
                         <TextBlock x:Name="HostLabel" Text="Host Name (or IP)" VerticalAlignment="Center" Grid.Row="1"/>
