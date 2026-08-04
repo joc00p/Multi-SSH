@@ -17,6 +17,7 @@ public class ScpConnection : InteractivePromptBackend
     {
         _scp = new ScpClient(RemoteAuth.BuildConnectionInfo(Cfg));
         _scp.Connect();
+        RemoteAuth.ApplySocketOptions(_scp, Cfg);   // TCP_NODELAY / SO_KEEPALIVE
     }
 
     protected override void WriteWelcome()

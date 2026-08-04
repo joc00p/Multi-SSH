@@ -122,6 +122,7 @@ public class LocalShellConnection : ITerminalBackend
         if (!CreatePipe(out var outRead, out var outWrite, IntPtr.Zero, 0))
             throw new Win32Exception(Marshal.GetLastWin32Error(), "CreatePipe (output) failed");
 
+        bool handedOff = false;
         try
         {
             int hr = CreatePseudoConsole(new COORD { X = (short)cols, Y = (short)rows },
@@ -135,6 +136,7 @@ public class LocalShellConnection : ITerminalBackend
             _writer = new FileStream(_inWrite, FileAccess.Write);
             _reader = new FileStream(_outRead, FileAccess.Read);
             _running = true;
+            handedOff = true;   // our ends are now owned by _writer/_reader
 
             _readThread = new Thread(ReadLoop) { IsBackground = true, Name = "conpty-read" };
             _readThread.Start();
@@ -149,6 +151,13 @@ public class LocalShellConnection : ITerminalBackend
             // or the pipes never report EOF.
             inRead.Dispose();
             outWrite.Dispose();
+            // If we threw before wiring the streams, our ends never got an owner —
+            // dispose them here so the pipe handles don't leak until finalization.
+            if (!handedOff)
+            {
+                inWrite.Dispose();
+                outRead.Dispose();
+            }
         }
 
         return Task.CompletedTask;
