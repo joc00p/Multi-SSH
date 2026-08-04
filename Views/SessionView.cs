@@ -90,6 +90,26 @@ public class SessionView : Grid
         _ => Color.FromRgb(0x25, 0x25, 0x2b),
     };
 
+    /// <summary>
+    /// Colour the status strip. Active states (connected/connecting/failed) keep their
+    /// tinted bars with white text on both themes; the neutral idle/disconnected state
+    /// follows the app chrome theme so it isn't a dark strip on a light UI.
+    /// </summary>
+    private void ApplyStatusTheme(ConnectionState state)
+    {
+        bool neutral = state is ConnectionState.Idle or ConnectionState.Disconnected;
+        if (neutral)
+        {
+            _statusBar.SetResourceReference(Border.BackgroundProperty, ThemeManager.HeaderBg);
+            _status.SetResourceReference(TextBlock.ForegroundProperty, ThemeManager.Text);
+        }
+        else
+        {
+            _statusBar.Background = new SolidColorBrush(BarColor(state));
+            _status.Foreground = Brushes.White;
+        }
+    }
+
     public SessionView(SessionConfig cfg)
     {
         _cfg = cfg;
@@ -104,7 +124,12 @@ public class SessionView : Grid
         _term.DoubleClicked += () => DoubleClicked?.Invoke(this);
         _term.TitleChanged += t =>
         {
-            TabTitle = string.IsNullOrWhiteSpace(t) ? cfg.Display : t;
+            // Local shells (PowerShell/CMD/Bash/WSL) set their OSC window title to the
+            // current directory path; show the shell name instead. Remote sessions keep
+            // the OSC title so it can reflect the remote host/app.
+            var next = cfg.IsLocal || string.IsNullOrWhiteSpace(t) ? cfg.Display : t;
+            if (next == TabTitle) return;
+            TabTitle = next;
             TitleChanged?.Invoke(this);
         };
         SetRow(_term, 0);
@@ -114,15 +139,11 @@ public class SessionView : Grid
         _status = new TextBlock
         {
             Text = "Idle",
-            Foreground = Brushes.White,
             Margin = new Thickness(6, 2, 6, 2),
             FontSize = 11,
         };
-        _statusBar = new Border
-        {
-            Background = new SolidColorBrush(Color.FromRgb(0x25, 0x25, 0x2b)),
-            Child = _status,
-        };
+        _statusBar = new Border { Child = _status };
+        ApplyStatusTheme(ConnectionState.Idle);
         SetRow(_statusBar, 1);
         Children.Add(_statusBar);
 
@@ -322,7 +343,7 @@ public class SessionView : Grid
             _connected = state == ConnectionState.Connected;
             StatusText = text;
             _status.Text = text;
-            _statusBar.Background = new SolidColorBrush(BarColor(state));
+            ApplyStatusTheme(state);
             StateChanged?.Invoke(this);
         });
     }

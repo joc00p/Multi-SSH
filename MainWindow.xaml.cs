@@ -53,6 +53,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         Title = AppTitle;
+        UpdateThemeButton();   // label reflects the theme applied at startup
         LoadSaved();
         ApplyDockLayout();
         PreviewKeyDown += Window_PreviewKeyDown;
@@ -1073,12 +1074,30 @@ public partial class MainWindow : Window
 
     private void HighlightModeButton()
     {
-        var on = new SolidColorBrush(Color.FromRgb(0x3B, 0x78, 0xFF));
-        var off = new SolidColorBrush(Color.FromRgb(0x3A, 0x3A, 0x44));
+        var on = (Brush)FindResource(ThemeManager.Accent);
+        var off = (Brush)FindResource(ThemeManager.ButtonBorder);
         TabsBtn.BorderBrush = _mode == ViewMode.Tabs ? on : off;
         TilesBtn.BorderBrush = _mode == ViewMode.Tiles ? on : off;
         TilesVBtn.BorderBrush = _mode == ViewMode.TilesVertical ? on : off;
         LayeredBtn.BorderBrush = _mode == ViewMode.Layered ? on : off;
+    }
+
+    private void Theme_Click(object sender, RoutedEventArgs e)
+    {
+        var theme = ThemeManager.Toggle();
+        AppSettings.Current.Theme = theme;
+        AppSettings.Current.Save();
+        UpdateThemeButton();
+        HighlightModeButton();   // re-apply active/inactive borders with the new palette
+    }
+
+    private void UpdateThemeButton()
+        => ThemeBtn.Content = ThemeManager.Current == "Dark" ? "🌙 Dark" : "☀ Light";
+
+    private void Curl_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new CurlTesterDialog { Owner = this };
+        dlg.Show();   // modeless: keep it open beside your sessions
     }
 
     private void OnClosing(object? sender, System.ComponentModel.CancelEventArgs e)

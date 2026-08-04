@@ -16,6 +16,9 @@ public class AppSettings
     public double DefaultFontSize { get; set; } = 14;
     public string DefaultColorScheme { get; set; } = "Campbell";
 
+    /// <summary>App chrome theme: "Dark" (default) or "Light".</summary>
+    public string Theme { get; set; } = "Dark";
+
     // ---- Window (PuTTY-style) ----
 
     /// <summary>Default initial terminal size for new sessions.</summary>
