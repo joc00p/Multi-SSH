@@ -20,6 +20,23 @@ public partial class SettingsDialog : Window
         FontSizeBox.Text = s.DefaultFontSize.ToString("0.#");
         SelectScheme(s.DefaultColorScheme);
         RecordFolderBox.Text = s.RecordingsFolder;
+
+        ColsBox.Text = s.DefaultColumns.ToString();
+        RowsBox.Text = s.DefaultRows.ToString();
+        ScrollbackBox.Text = s.DefaultScrollbackLines.ToString();
+        (s.ResizeBehavior switch
+        {
+            "FontSize" => RbFontSize,
+            "FontSizeMax" => RbFontSizeMax,
+            "Forbid" => RbForbid,
+            _ => RbRowsCols,
+        }).IsChecked = true;
+        ChkScrollbar.IsChecked = s.DisplayScrollbar;
+        ChkScrollbarFs.IsChecked = s.ScrollbarInFullScreen;
+        ChkResetKeypress.IsChecked = s.ResetScrollbackOnKeypress;
+        ChkResetActivity.IsChecked = s.ResetScrollbackOnActivity;
+        ChkPushErased.IsChecked = s.PushErasedToScrollback;
+
         UpdatePreview();
     }
 
@@ -77,6 +94,20 @@ public partial class SettingsDialog : Window
         s.DefaultFontSize = double.TryParse(FontSizeBox.Text, out var sz) && sz > 0 ? sz : 14;
         s.DefaultColorScheme = (SchemeCombo.SelectedItem as ComboBoxItem)?.Content as string ?? "Campbell";
         s.RecordingsFolder = RecordFolderBox.Text.Trim();
+
+        s.DefaultColumns = int.TryParse(ColsBox.Text, out var c) && c > 0 ? c : 80;
+        s.DefaultRows = int.TryParse(RowsBox.Text, out var r) && r > 0 ? r : 24;
+        s.DefaultScrollbackLines = int.TryParse(ScrollbackBox.Text, out var sb) && sb >= 0 ? sb : 2000;
+        s.ResizeBehavior =
+            RbFontSize.IsChecked == true ? "FontSize" :
+            RbFontSizeMax.IsChecked == true ? "FontSizeMax" :
+            RbForbid.IsChecked == true ? "Forbid" : "RowsCols";
+        s.DisplayScrollbar = ChkScrollbar.IsChecked == true;
+        s.ScrollbarInFullScreen = ChkScrollbarFs.IsChecked == true;
+        s.ResetScrollbackOnKeypress = ChkResetKeypress.IsChecked == true;
+        s.ResetScrollbackOnActivity = ChkResetActivity.IsChecked == true;
+        s.PushErasedToScrollback = ChkPushErased.IsChecked == true;
+
         s.Save();
         DialogResult = true;
     }

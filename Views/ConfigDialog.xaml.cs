@@ -45,6 +45,9 @@ public partial class ConfigDialog : Window
             FontSize = app.DefaultFontSize,
             ColorScheme = app.DefaultColorScheme,
             FolderPath = defaultFolder ?? "",
+            Columns = app.DefaultColumns,
+            Rows = app.DefaultRows,
+            ScrollbackLines = app.DefaultScrollbackLines,
         };
     }
 

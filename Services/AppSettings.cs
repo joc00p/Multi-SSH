@@ -16,6 +16,24 @@ public class AppSettings
     public double DefaultFontSize { get; set; } = 14;
     public string DefaultColorScheme { get; set; } = "Campbell";
 
+    // ---- Window (PuTTY-style) ----
+
+    /// <summary>Default initial terminal size for new sessions.</summary>
+    public int DefaultColumns { get; set; } = 80;
+    public int DefaultRows { get; set; } = 24;
+    public int DefaultScrollbackLines { get; set; } = 2000;
+
+    /// <summary>How the terminal reacts to the pane being resized:
+    /// "RowsCols" (reflow), "FontSize" (scale font, keep rows/cols),
+    /// "FontSizeMax" (scale font only when the window is maximized), "Forbid".</summary>
+    public string ResizeBehavior { get; set; } = "RowsCols";
+
+    public bool DisplayScrollbar { get; set; } = true;
+    public bool ScrollbarInFullScreen { get; set; }
+    public bool ResetScrollbackOnKeypress { get; set; }
+    public bool ResetScrollbackOnActivity { get; set; } = true;
+    public bool PushErasedToScrollback { get; set; } = true;
+
     /// <summary>User-configured hot keys (key → command).</summary>
     public List<HotKey> HotKeys { get; set; } = new();
 

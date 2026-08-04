@@ -2,66 +2,96 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Multi-SSH — Settings"
-        Height="330" Width="460"
+        Height="600" Width="480"
         WindowStartupLocation="CenterOwner"
-        ResizeMode="NoResize"
+        ResizeMode="CanResize" MinWidth="440" MinHeight="420"
         Background="#F0F0F0"
         ShowInTaskbar="False">
-    <Grid Margin="14">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
-
-        <TextBlock Grid.Row="0" Text="Defaults for new sessions" FontWeight="Bold" Margin="0,0,0,14"/>
-
-        <Grid Grid.Row="1">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="140"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
-
-            <TextBlock Text="Default font" Grid.Row="0" VerticalAlignment="Center"/>
-            <ComboBox x:Name="FontCombo" Grid.Row="0" Grid.Column="1" Margin="0,4" IsEditable="True"
-                      SelectionChanged="Font_Changed" LostFocus="Font_Changed"/>
-
-            <TextBlock Text="Default font size" Grid.Row="1" VerticalAlignment="Center"/>
-            <TextBox x:Name="FontSizeBox" Grid.Row="1" Grid.Column="1" Margin="0,4"
-                     TextChanged="Font_Changed"/>
-
-            <TextBlock Text="Default colour scheme" Grid.Row="2" VerticalAlignment="Center"/>
-            <ComboBox x:Name="SchemeCombo" Grid.Row="2" Grid.Column="1" Margin="0,4">
-                <ComboBoxItem Content="Campbell"/>
-                <ComboBoxItem Content="PuTTY"/>
-                <ComboBoxItem Content="Solarized Dark"/>
-                <ComboBoxItem Content="Dracula"/>
-            </ComboBox>
-
-            <Border Grid.Row="3" Grid.Column="1" Margin="0,10,0,0" Background="#0C0C0C" Padding="8" CornerRadius="3">
-                <TextBlock x:Name="Preview" Text="user@host:~$ echo preview 1234"
-                           Foreground="#CCCCCC"/>
-            </Border>
-
-            <TextBlock Text="Recordings folder" Grid.Row="4" VerticalAlignment="Center" Margin="0,12,0,0"/>
-            <DockPanel Grid.Row="4" Grid.Column="1" Margin="0,12,0,0">
-                <Button x:Name="BrowseLogBtn" DockPanel.Dock="Right" Content="Browse…" Padding="8,2"
-                        Margin="6,0,0,0" Click="BrowseLog_Click"/>
-                <TextBox x:Name="RecordFolderBox" VerticalContentAlignment="Center"
-                         ToolTip="Where session recordings (transcripts) are saved. Blank = Documents\Multi-SSH Recordings."/>
-            </DockPanel>
-        </Grid>
-
-        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
+    <DockPanel Margin="14">
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
             <Button Content="Save" Width="90" Height="28" Margin="0,0,8,0" IsDefault="True" Click="Save_Click"/>
             <Button Content="Cancel" Width="90" Height="28" IsCancel="True"/>
         </StackPanel>
-    </Grid>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <!-- Defaults for new sessions -->
+                <TextBlock Text="Defaults for new sessions" FontWeight="Bold" Margin="0,0,0,8"/>
+                <Grid Margin="0,0,0,4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="150"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Text="Default font" Grid.Row="0" VerticalAlignment="Center"/>
+                    <ComboBox x:Name="FontCombo" Grid.Row="0" Grid.Column="1" Margin="0,4" IsEditable="True"
+                              SelectionChanged="Font_Changed" LostFocus="Font_Changed"/>
+
+                    <TextBlock Text="Default font size" Grid.Row="1" VerticalAlignment="Center"/>
+                    <TextBox x:Name="FontSizeBox" Grid.Row="1" Grid.Column="1" Margin="0,4" TextChanged="Font_Changed"/>
+
+                    <TextBlock Text="Default colour scheme" Grid.Row="2" VerticalAlignment="Center"/>
+                    <ComboBox x:Name="SchemeCombo" Grid.Row="2" Grid.Column="1" Margin="0,4">
+                        <ComboBoxItem Content="Campbell"/>
+                        <ComboBoxItem Content="PuTTY"/>
+                        <ComboBoxItem Content="Solarized Dark"/>
+                        <ComboBoxItem Content="Dracula"/>
+                    </ComboBox>
+
+                    <Border Grid.Row="3" Grid.Column="1" Margin="0,8,0,0" Background="#0C0C0C" Padding="8" CornerRadius="3">
+                        <TextBlock x:Name="Preview" Text="user@host:~$ echo preview 1234" Foreground="#CCCCCC"/>
+                    </Border>
+                </Grid>
+
+                <!-- Window size -->
+                <TextBlock Text="Set the size of the window" FontWeight="Bold" Margin="0,16,0,8"/>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Columns" VerticalAlignment="Center" Width="70"/>
+                    <TextBox x:Name="ColsBox" Width="60" Margin="0,0,20,0" VerticalContentAlignment="Center"/>
+                    <TextBlock Text="Rows" VerticalAlignment="Center" Width="45"/>
+                    <TextBox x:Name="RowsBox" Width="60" VerticalContentAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Resize behaviour -->
+                <TextBlock Text="When the window is resized" FontWeight="Bold" Margin="0,16,0,8"/>
+                <StackPanel>
+                    <RadioButton x:Name="RbRowsCols" GroupName="Resize" Margin="0,3"
+                                 Content="Change the number of rows and columns"/>
+                    <RadioButton x:Name="RbFontSize" GroupName="Resize" Margin="0,3"
+                                 Content="Change the size of the font"/>
+                    <RadioButton x:Name="RbFontSizeMax" GroupName="Resize" Margin="0,3"
+                                 Content="Change font size only when maximised"/>
+                    <RadioButton x:Name="RbForbid" GroupName="Resize" Margin="0,3"
+                                 Content="Forbid resizing completely"/>
+                </StackPanel>
+
+                <!-- Scrollback -->
+                <TextBlock Text="Control the scrollback in the window" FontWeight="Bold" Margin="0,16,0,8"/>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                    <TextBlock Text="Lines of scrollback" VerticalAlignment="Center" Width="150"/>
+                    <TextBox x:Name="ScrollbackBox" Width="90" VerticalContentAlignment="Center"/>
+                </StackPanel>
+                <CheckBox x:Name="ChkScrollbar" Content="Display scrollbar" Margin="0,3"/>
+                <CheckBox x:Name="ChkScrollbarFs" Content="Display scrollbar in full screen mode" Margin="0,3"/>
+                <CheckBox x:Name="ChkResetKeypress" Content="Reset scrollback on keypress" Margin="0,3"/>
+                <CheckBox x:Name="ChkResetActivity" Content="Reset scrollback on display activity" Margin="0,3"/>
+                <CheckBox x:Name="ChkPushErased" Content="Push erased text into scrollback" Margin="0,3"/>
+
+                <!-- Recordings -->
+                <TextBlock Text="Recordings" FontWeight="Bold" Margin="0,16,0,8"/>
+                <DockPanel>
+                    <Button x:Name="BrowseLogBtn" DockPanel.Dock="Right" Content="Browse…" Padding="8,2"
+                            Margin="6,0,0,0" Click="BrowseLog_Click"/>
+                    <TextBox x:Name="RecordFolderBox" VerticalContentAlignment="Center"
+                             ToolTip="Where session recordings (transcripts) are saved. Blank = Documents\Multi-SSH Recordings."/>
+                </DockPanel>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
 </Window>
