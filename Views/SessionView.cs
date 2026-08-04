@@ -310,14 +310,15 @@ public class SessionView : Grid
         _term.Focus();
     }
 
-    /// <summary>Change connection state (dot colour + status bar) and status text.</summary>
+    /// <summary>Change connection state (dot colour + status bar) and status text.
+    /// State fields are written on the UI thread so backend threads never race the UI.</summary>
     private void SetState(ConnectionState state, string text)
     {
-        _state = state;
-        _connected = state == ConnectionState.Connected;
-        StatusText = text;
         Dispatcher.BeginInvoke(() =>
         {
+            _state = state;
+            _connected = state == ConnectionState.Connected;
+            StatusText = text;
             _status.Text = text;
             _statusBar.Background = new SolidColorBrush(BarColor(state));
             StateChanged?.Invoke(this);
@@ -327,9 +328,9 @@ public class SessionView : Grid
     /// <summary>Update the status text only, keeping the current state/colour.</summary>
     private void SetStatusText(string s)
     {
-        StatusText = s;
         Dispatcher.BeginInvoke(() =>
         {
+            StatusText = s;
             _status.Text = s;
             StateChanged?.Invoke(this);
         });

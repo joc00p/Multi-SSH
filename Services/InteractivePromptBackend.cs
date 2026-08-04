@@ -113,7 +113,7 @@ public abstract class InteractivePromptBackend : ITerminalBackend
 
     protected void Output(string s)
     {
-        if (string.IsNullOrEmpty(s)) return;
+        if (_disposed || string.IsNullOrEmpty(s)) return;
         lock (_outLock)
             DataReceived?.Invoke(Encoding.UTF8.GetBytes(s));
     }
@@ -156,6 +156,8 @@ public abstract class InteractivePromptBackend : ITerminalBackend
         _disposed = true;
         _connected = false;
         try { _queue.CompleteAdding(); } catch { }
+        // Let any in-flight command finish (bounded) before disposing the client it uses.
+        try { _worker?.Join(500); } catch { }
         try { DisposeClient(); } catch { }
         Closed?.Invoke("Disconnected");
     }

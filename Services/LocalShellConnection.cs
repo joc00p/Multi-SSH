@@ -250,20 +250,28 @@ public class LocalShellConnection : ITerminalBackend
 
         try
         {
-            // Closing the pseudoconsole asks the shell to exit and unblocks the
-            // read loop; terminate anything that ignores it.
+            // 1. Ask the shell to exit — this EOFs the read pipe and ends the process.
             if (_hPC != IntPtr.Zero) { ClosePseudoConsole(_hPC); _hPC = IntPtr.Zero; }
 
+            // 2. Make sure the process has actually exited.
             if (_hProcess != IntPtr.Zero)
             {
                 if (WaitForSingleObject(_hProcess, 2000) != 0) TerminateProcess(_hProcess, 0);
-                CloseHandle(_hProcess);
-                _hProcess = IntPtr.Zero;
             }
-            if (_hThread != IntPtr.Zero) { CloseHandle(_hThread); _hThread = IntPtr.Zero; }
 
-            _writer?.Dispose();
+            // 3. The wait thread only blocks on the process handle; join it so it is no
+            //    longer using that handle before we close it (avoids closing a handle a
+            //    thread is still waiting on).
+            _waitThread?.Join(1500);
+
+            // 4. Unblock and stop the read thread before disposing the pipes it reads.
             _reader?.Dispose();
+            _writer?.Dispose();
+            _readThread?.Join(1000);
+
+            // 5. No thread references these handles now — safe to close.
+            if (_hProcess != IntPtr.Zero) { CloseHandle(_hProcess); _hProcess = IntPtr.Zero; }
+            if (_hThread != IntPtr.Zero) { CloseHandle(_hThread); _hThread = IntPtr.Zero; }
 
             if (_attrList != IntPtr.Zero)
             {
