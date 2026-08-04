@@ -109,8 +109,12 @@ public static class SessionTree
             else root.Add(folder);
         }
 
-        // Attach connections.
-        foreach (var c in conns.OrderBy(c => c.Display, StringComparer.OrdinalIgnoreCase))
+        // Attach connections. Default order is alphanumeric by display name; once the
+        // user drags to reorder, those items carry an explicit SortOrder that wins.
+        // Unordered items (SortOrder == null) fall to the end, alphabetical among themselves.
+        foreach (var c in conns
+                     .OrderBy(c => c.SortOrder ?? int.MaxValue)
+                     .ThenBy(c => c.Display, StringComparer.OrdinalIgnoreCase))
         {
             var node = new ConnectionVm(c);
             var fp = c.FolderPath ?? "";

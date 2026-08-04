@@ -51,6 +51,10 @@ public class SessionConfig
     /// Uses '/' as the separator. Old sessions load with "" (root), so nothing is lost.</summary>
     public string FolderPath { get; set; } = "";
 
+    /// <summary>Manual position within its folder, set when the user drags to reorder.
+    /// null = unordered, so it sorts alphanumerically by display name (the default).</summary>
+    public int? SortOrder { get; set; }
+
     // --- Connection / Authentication ---
     public AuthMethod Auth { get; set; } = AuthMethod.Password;
 

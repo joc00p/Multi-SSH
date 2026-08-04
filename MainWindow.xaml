@@ -153,7 +153,7 @@
                                VerticalAlignment="Center"/>
                 </DockPanel>
                 <TextBlock DockPanel.Dock="Bottom"
-                           Text="Double-click a connection to open · drag onto a folder to move · right-click for options"
+                           Text="Double-click to open · drag onto a folder to move · drag between rows to reorder · right-click for options"
                            Foreground="#666" FontSize="10" TextWrapping="Wrap" Margin="10,6,10,10"/>
                 <TreeView x:Name="SessionTreeView" Background="Transparent" BorderThickness="0" Foreground="White"
                           AllowDrop="True"
@@ -163,7 +163,7 @@
                           PreviewMouseRightButtonDown="Tree_PreviewMouseRightButtonDown"
                           PreviewMouseLeftButtonDown="Tree_PreviewMouseLeftButtonDown"
                           PreviewMouseMove="Tree_PreviewMouseMove"
-                          DragOver="Tree_DragOver" Drop="Tree_Drop">
+                          DragOver="Tree_DragOver" DragLeave="Tree_DragLeave" Drop="Tree_Drop">
                     <TreeView.Resources>
                         <HierarchicalDataTemplate DataType="{x:Type vm:FolderVm}" ItemsSource="{Binding Children}">
                             <StackPanel Orientation="Horizontal">
