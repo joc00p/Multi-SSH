@@ -19,6 +19,9 @@ public class AppSettings
     /// <summary>App chrome theme: "Dark" (default) or "Light".</summary>
     public string Theme { get; set; } = "Dark";
 
+    /// <summary>Show the "x of y" open-window counter at the bottom of each session.</summary>
+    public bool ShowWindowCounter { get; set; } = true;
+
     // ---- Window (PuTTY-style) ----
 
     /// <summary>Default initial terminal size for new sessions.</summary>

@@ -818,7 +818,7 @@ public partial class MainWindow : Window
     private void Settings_Click(object sender, RoutedEventArgs e)
     {
         var dlg = new SettingsDialog { Owner = this };
-        dlg.ShowDialog();
+        if (dlg.ShowDialog() == true) UpdatePaneNumbers();   // apply the window-counter toggle live
     }
 
     private void HotKeys_Click(object sender, RoutedEventArgs e)
