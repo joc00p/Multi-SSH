@@ -71,11 +71,11 @@
                         </StackPanel>
                     </Button>
                     <Button x:Name="HotKeysBtn" Content="⌨ Hot Keys" Style="{StaticResource ToolBtn}" Click="HotKeys_Click"/>
-                    <Button x:Name="SettingsBtn" Content="⚙ Settings" Style="{StaticResource ToolBtn}" Click="Settings_Click"/>
                     <Button x:Name="ThemeBtn" Content="🌙 Dark" Style="{StaticResource ToolBtn}" Click="Theme_Click"
                             ToolTip="Toggle light / dark theme"/>
                     <Button x:Name="CurlBtn" Content="🌐 Curl" Style="{StaticResource ToolBtn}" Click="Curl_Click"
                             ToolTip="Open the curl connectivity tester"/>
+                    <Button x:Name="SettingsBtn" Content="⚙ Settings" Style="{StaticResource ToolBtn}" Click="Settings_Click"/>
                     <Separator Margin="6,0" Background="{DynamicResource Chrome.Border}"/>
                     <TextBlock Text="View:" Foreground="{DynamicResource Chrome.MutedText}" VerticalAlignment="Center" Margin="0,0,6,0"/>
                     <!-- Four layouts in a compact 2x2 block -->
