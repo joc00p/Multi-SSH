@@ -2,6 +2,7 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using MultiSSH.Models;
 
 namespace MultiSSH.Services;
@@ -60,6 +61,11 @@ public static class SessionStore
         }
         var json = JsonSerializer.Serialize(toWrite, JsonOpts);
 
+        // Safety net: if this save would shrink the list, snapshot the current file to a
+        // dated backup first. The single sessions.json.bak only holds one generation, so
+        // two saves after an unexpected drop erase it — a dated copy is always recoverable.
+        BackupIfShrinking(toWrite.Count);
+
         // Atomic write: serialize to a temp file, then replace. File.Replace swaps
         // it in atomically and keeps the previous version as sessions.json.bak, so
         // a crash mid-write can never truncate or lose the real file.
@@ -69,6 +75,36 @@ public static class SessionStore
             File.Replace(tmp, FilePath, FilePath + ".bak");
         else
             File.Move(tmp, FilePath);
+    }
+
+    private static readonly Regex DatedBackup = new(@"^sessions\.\d{8}-\d{6}\.bak$", RegexOptions.Compiled);
+
+    /// <summary>
+    /// If the new list has fewer entries than what is currently on disk, copy the current
+    /// file to sessions.{yyyyMMdd-HHmmss}.bak before overwriting it. Best-effort — a backup
+    /// failure must never block the save. Keeps the newest few dated backups.
+    /// </summary>
+    private static void BackupIfShrinking(int newCount)
+    {
+        try
+        {
+            if (!File.Exists(FilePath)) return;
+            var existing = JsonSerializer.Deserialize<List<SessionConfig>>(File.ReadAllText(FilePath));
+            int oldCount = existing?.Count ?? 0;
+            if (newCount >= oldCount) return;   // same size or growing — nothing to protect
+
+            var stamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
+            File.Copy(FilePath, Path.Combine(Dir, $"sessions.{stamp}.bak"), overwrite: true);
+
+            // Prune to the 10 most recent dated backups so they can't accumulate forever.
+            var stale = Directory.GetFiles(Dir, "sessions.*.bak")
+                .Where(f => DatedBackup.IsMatch(Path.GetFileName(f)))
+                .OrderByDescending(f => f)
+                .Skip(10)
+                .ToList();
+            foreach (var f in stale) File.Delete(f);
+        }
+        catch { /* backups are best-effort; never let one break a save */ }
     }
 
     private const string Marker = "dpapi:";
