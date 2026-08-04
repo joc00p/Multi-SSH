@@ -5,7 +5,7 @@
 ; The published self-contained exe must exist first (see build-installer.ps1).
 
 #define AppName "Multi-SSH"
-#define AppVersion "1.0.40"
+#define AppVersion "1.0.41"
 #define AppPublisher "joc00p"
 #define AppExe "Multi-SSH.exe"
 #define AppUrl "https://github.com/joc00p/Multi-SSH"
@@ -38,16 +38,14 @@ ArchitecturesInstallIn64BitMode=x64compatible
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
-[Tasks]
-Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
-
 [Files]
 Source: "{#PublishDir}\{#AppExe}"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExe}"
 Name: "{group}\{cm:UninstallProgram,{#AppName}}"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopicon
+; Always create a Desktop shortcut to the installed app (not just the installer).
+Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"
 
 [Run]
 Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent
