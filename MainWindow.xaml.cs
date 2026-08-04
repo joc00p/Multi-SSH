@@ -39,7 +39,7 @@ public partial class MainWindow : Window
     private TreeNodeVm? _selectedNode;
     private readonly HashSet<string> _expandedFolders = new(StringComparer.OrdinalIgnoreCase);
     private Point _dragStart;
-    private ConnectionVm? _dragNode;
+    private TreeNodeVm? _dragNode;
 
     // Unsubscribe actions for the current tab strip's per-session event handlers.
     // Flushed on every RebuildContent so tab headers don't leak handlers/visuals.
@@ -469,14 +469,14 @@ public partial class MainWindow : Window
         RefreshTree();
     }
 
-    // ---- drag & drop (move a connection into a folder) ----
+    // ---- drag & drop (move a connection or a folder into another folder) ----
 
     private void Tree_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         _dragStart = e.GetPosition(null);
         _dragNode = FromButton(e.OriginalSource as DependencyObject)
             ? null
-            : NodeFromSource(e.OriginalSource as DependencyObject) as ConnectionVm;
+            : NodeFromSource(e.OriginalSource as DependencyObject);
     }
 
     private void Tree_PreviewMouseMove(object sender, MouseEventArgs e)
@@ -486,33 +486,74 @@ public partial class MainWindow : Window
         if (Math.Abs(p.X - _dragStart.X) < SystemParameters.MinimumHorizontalDragDistance &&
             Math.Abs(p.Y - _dragStart.Y) < SystemParameters.MinimumVerticalDragDistance) return;
 
-        var data = new DataObject(typeof(ConnectionVm), _dragNode);
+        var data = new DataObject(typeof(TreeNodeVm), _dragNode);
         DragDrop.DoDragDrop(SessionTreeView, data, DragDropEffects.Move);
         _dragNode = null;
     }
 
     private void Tree_DragOver(object sender, DragEventArgs e)
     {
-        e.Effects = e.Data.GetDataPresent(typeof(ConnectionVm)) ? DragDropEffects.Move : DragDropEffects.None;
+        e.Effects = e.Data.GetDataPresent(typeof(TreeNodeVm)) ? DragDropEffects.Move : DragDropEffects.None;
         e.Handled = true;
     }
 
     private void Tree_Drop(object sender, DragEventArgs e)
     {
-        if (e.Data.GetData(typeof(ConnectionVm)) is not ConnectionVm dragged) return;
+        if (e.Data.GetData(typeof(TreeNodeVm)) is not TreeNodeVm dragged) return;
+
+        // Which folder was it dropped onto? (a connection stands for its folder)
         var target = NodeFromSource(e.OriginalSource as DependencyObject);
-        string newFolder = target switch
+        string targetFolder = target switch
         {
             FolderVm f => f.Path,
             ConnectionVm c => c.Config.FolderPath ?? "",
             _ => "",
         };
-        if (!string.Equals(dragged.Config.FolderPath ?? "", newFolder, StringComparison.OrdinalIgnoreCase))
+
+        if (dragged is ConnectionVm conn)
         {
-            dragged.Config.FolderPath = newFolder;
-            PersistSaved();
-            RefreshTree();
+            if (!string.Equals(conn.Config.FolderPath ?? "", targetFolder, StringComparison.OrdinalIgnoreCase))
+            {
+                conn.Config.FolderPath = targetFolder;
+                PersistSaved();
+                RefreshTree();
+            }
         }
+        else if (dragged is FolderVm folder)
+        {
+            MoveFolder(folder, targetFolder);
+        }
+    }
+
+    /// <summary>Reparent a folder (and everything inside it) under <paramref name="newParent"/>.</summary>
+    private void MoveFolder(FolderVm folder, string newParent)
+    {
+        var oldPath = folder.Path;
+        var name = SessionTree.NameOf(oldPath);
+        var newPath = newParent.Length == 0 ? name : newParent + "/" + name;
+
+        if (string.Equals(newPath, oldPath, StringComparison.OrdinalIgnoreCase)) return; // no move
+        // Can't drop a folder into itself or one of its own descendants.
+        if (string.Equals(newParent, oldPath, StringComparison.OrdinalIgnoreCase) ||
+            newParent.StartsWith(oldPath + "/", StringComparison.OrdinalIgnoreCase))
+            return;
+
+        var folders = AppSettings.Current.SessionFolders;
+        for (int i = 0; i < folders.Count; i++)
+            if (PathEqualsOrUnder(folders[i], oldPath))
+                folders[i] = ReplacePrefix(folders[i], oldPath, newPath);
+        if (!folders.Any(x => string.Equals(x, newPath, StringComparison.OrdinalIgnoreCase)))
+            folders.Add(newPath);
+
+        foreach (var c in _saved)
+            if (PathEqualsOrUnder(c.FolderPath ?? "", oldPath))
+                c.FolderPath = ReplacePrefix(c.FolderPath ?? "", oldPath, newPath);
+
+        _expandedFolders.Add(newParent);
+        _expandedFolders.Add(newPath);
+        AppSettings.Current.Save();
+        PersistSaved();
+        RefreshTree();
     }
 
     // ---- helpers ----
