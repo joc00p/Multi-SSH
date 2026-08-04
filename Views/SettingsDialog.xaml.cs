@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.IO;
+using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -46,6 +47,9 @@ public partial class SettingsDialog : Window
         ChkResetKeypress.IsChecked = s.ResetScrollbackOnKeypress;
         ChkResetActivity.IsChecked = s.ResetScrollbackOnActivity;
         ChkPushErased.IsChecked = s.PushErasedToScrollback;
+
+        var ver = Assembly.GetExecutingAssembly().GetName().Version;
+        VersionText.Text = $"Multi-SSH version {ver?.ToString(3) ?? "1.0"}";
 
         UpdatePreview();
     }
