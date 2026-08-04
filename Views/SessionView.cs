@@ -157,13 +157,13 @@ public class SessionView : Grid
         // "x of y" counter: this window's position and the total number of open windows.
         _position = new TextBlock
         {
-            Margin = new Thickness(6, 2, 10, 2),
+            Margin = new Thickness(8, 2, 6, 2),
             FontSize = 11,
             VerticalAlignment = VerticalAlignment.Center,
         };
         var statusDock = new DockPanel();
-        DockPanel.SetDock(_position, Dock.Right);
-        statusDock.Children.Add(_position);   // right edge
+        DockPanel.SetDock(_position, Dock.Left);
+        statusDock.Children.Add(_position);   // far left edge
         statusDock.Children.Add(_status);     // fills the remainder
         _statusBar = new Border { Child = statusDock };
         ApplyStatusTheme(ConnectionState.Idle);
