@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text;
 using System.Windows;
@@ -29,6 +30,9 @@ public class TerminalControl : Control
 
     private int _scrollOffset;            // lines scrolled up into history
     private bool _dirty = true;
+    // Incoming output is queued from any thread and drained on the render tick,
+    // so a flood of small chunks can't saturate the UI dispatcher.
+    private readonly ConcurrentQueue<byte[]> _incoming = new();
     private readonly DispatcherTimer _renderTimer;
     private readonly DispatcherTimer _blinkTimer;
     private bool _cursorOn = true;
@@ -67,7 +71,12 @@ public class TerminalControl : Control
         BuildTypeface();
 
         _renderTimer = new DispatcherTimer(DispatcherPriority.Render) { Interval = TimeSpan.FromMilliseconds(33) };
-        _renderTimer.Tick += (_, _) => { if (_dirty) { _dirty = false; InvalidateVisual(); } PublishTitle(); };
+        _renderTimer.Tick += (_, _) =>
+        {
+            DrainIncoming();
+            if (_dirty) { _dirty = false; InvalidateVisual(); }
+            PublishTitle();
+        };
         _renderTimer.Start();
 
         _blinkTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(530) };
@@ -140,17 +149,27 @@ public class TerminalControl : Control
 
     // -------------------- incoming data --------------------
 
-    /// <summary>Feed raw bytes from the SSH channel (any thread).</summary>
+    /// <summary>Queue raw bytes from the backend (any thread). Drained on the render tick.</summary>
     public void Feed(byte[] data)
     {
-        if (!Dispatcher.CheckAccess())
+        if (data.Length == 0) return;
+        _incoming.Enqueue(data);
+    }
+
+    /// <summary>Parse all queued output on the UI thread (called from the render tick).</summary>
+    private void DrainIncoming()
+    {
+        bool any = false;
+        while (_incoming.TryDequeue(out var chunk))
         {
-            Dispatcher.BeginInvoke(() => Feed(data));
-            return;
+            _parser.Feed(chunk, chunk.Length);
+            any = true;
         }
-        _parser.Feed(data, data.Length);
-        _scrollOffset = 0; // snap to bottom on new output
-        _dirty = true;
+        if (any)
+        {
+            _scrollOffset = 0; // snap to bottom on new output
+            _dirty = true;
+        }
     }
 
     private void OnBell()

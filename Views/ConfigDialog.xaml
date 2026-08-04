@@ -220,10 +220,11 @@
                         <TextBlock Text="Method" VerticalAlignment="Center" Grid.Row="0"/>
                         <ComboBox x:Name="AuthCombo" Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,4"
                                   SelectionChanged="AuthCombo_SelectionChanged">
+                            <!-- Order must match the AuthMethod enum: Password, PublicKey, Agent, KeyboardInteractive -->
                             <ComboBoxItem Content="Password"/>
                             <ComboBoxItem Content="Public key (private key file)"/>
-                            <ComboBoxItem Content="Keyboard-interactive"/>
                             <ComboBoxItem Content="Agent (falls back to password)"/>
+                            <ComboBoxItem Content="Keyboard-interactive"/>
                         </ComboBox>
 
                         <TextBlock Text="Password" Grid.Row="1" VerticalAlignment="Center"/>
