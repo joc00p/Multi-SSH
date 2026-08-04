@@ -48,6 +48,10 @@ public partial class ConfigDialog : Window
             Columns = app.DefaultColumns,
             Rows = app.DefaultRows,
             ScrollbackLines = app.DefaultScrollbackLines,
+            KeepAliveSeconds = app.DefaultKeepAliveSeconds,
+            TcpNoDelay = app.DefaultTcpNoDelay,
+            SoKeepalive = app.DefaultSoKeepalive,
+            IpVersion = app.DefaultIpVersion,
         };
     }
 
@@ -62,6 +66,13 @@ public partial class ConfigDialog : Window
         KeepAliveBox.Text = c.KeepAliveSeconds.ToString();
         TimeoutBox.Text = c.ConnectTimeoutSeconds.ToString();
         NoDelayChk.IsChecked = c.TcpNoDelay;
+        SoKeepaliveChk.IsChecked = c.SoKeepalive;
+        (c.IpVersion switch
+        {
+            "IPv4" => RbIpv4,
+            "IPv6" => RbIpv6,
+            _ => RbIpAuto,
+        }).IsChecked = true;
         AuthCombo.SelectedIndex = (int)c.Auth;
         PassBox.Password = c.Password ?? "";
         KeyPathBox.Text = c.PrivateKeyPath ?? "";
@@ -198,10 +209,14 @@ public partial class ConfigDialog : Window
             CopyOnSelect = CopySelChk.IsChecked == true,
             PasteOnRightClick = RightPasteChk.IsChecked == true,
             TcpNoDelay = NoDelayChk.IsChecked == true,
+            SoKeepalive = SoKeepaliveChk.IsChecked == true,
+            IpVersion =
+                RbIpv4.IsChecked == true ? "IPv4" :
+                RbIpv6.IsChecked == true ? "IPv6" : "Auto",
         };
 
         c.Port = ParseInt(PortBox.Text, 22);
-        c.KeepAliveSeconds = ParseInt(KeepAliveBox.Text, 30);
+        c.KeepAliveSeconds = ParseInt(KeepAliveBox.Text, 0);
         c.ConnectTimeoutSeconds = ParseInt(TimeoutBox.Text, 15);
         c.Columns = ParseInt(ColsBox.Text, 80);
         c.Rows = ParseInt(RowsBox.Text, 24);
