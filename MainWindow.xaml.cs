@@ -3,6 +3,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using MultiSSH.Models;
@@ -40,6 +41,9 @@ public partial class MainWindow : Window
     private readonly HashSet<string> _expandedFolders = new(StringComparer.OrdinalIgnoreCase);
     private Point _dragStart;
     private TreeNodeVm? _dragNode;
+    // Insertion line shown while dragging a connection to a new position.
+    private InsertionAdorner? _insertion;
+    private TreeViewItem? _insertionHost;
 
     // Unsubscribe actions for the current tab strip's per-session event handlers.
     // Flushed on every RebuildContent so tab headers don't leak handlers/visuals.
@@ -489,40 +493,138 @@ public partial class MainWindow : Window
         var data = new DataObject(typeof(TreeNodeVm), _dragNode);
         DragDrop.DoDragDrop(SessionTreeView, data, DragDropEffects.Move);
         _dragNode = null;
+        ClearInsertion();
     }
 
     private void Tree_DragOver(object sender, DragEventArgs e)
     {
-        e.Effects = e.Data.GetDataPresent(typeof(TreeNodeVm)) ? DragDropEffects.Move : DragDropEffects.None;
+        if (!e.Data.GetDataPresent(typeof(TreeNodeVm)))
+        {
+            e.Effects = DragDropEffects.None;
+            ClearInsertion();
+            e.Handled = true;
+            return;
+        }
+        e.Effects = DragDropEffects.Move;
         e.Handled = true;
+
+        // Show an insertion line only when hovering a connection row (leaf) and we're
+        // dragging a connection — that's the reorder case. Dropping on a folder just
+        // moves into it (no line), so clear any line in that case.
+        var container = ContainerFromSource(e.OriginalSource as DependencyObject);
+        if (e.Data.GetData(typeof(TreeNodeVm)) is ConnectionVm && container?.DataContext is ConnectionVm)
+        {
+            bool below = e.GetPosition(container).Y > container.RenderSize.Height / 2;
+            ShowInsertion(container, below);
+        }
+        else
+        {
+            ClearInsertion();
+        }
     }
+
+    private void Tree_DragLeave(object sender, DragEventArgs e) => ClearInsertion();
 
     private void Tree_Drop(object sender, DragEventArgs e)
     {
+        ClearInsertion();
         if (e.Data.GetData(typeof(TreeNodeVm)) is not TreeNodeVm dragged) return;
 
-        // Which folder was it dropped onto? (a connection stands for its folder)
-        var target = NodeFromSource(e.OriginalSource as DependencyObject);
-        string targetFolder = target switch
-        {
-            FolderVm f => f.Path,
-            ConnectionVm c => c.Config.FolderPath ?? "",
-            _ => "",
-        };
+        var container = ContainerFromSource(e.OriginalSource as DependencyObject);
+        var target = container?.DataContext as TreeNodeVm;
 
         if (dragged is ConnectionVm conn)
-        {
-            if (!string.Equals(conn.Config.FolderPath ?? "", targetFolder, StringComparison.OrdinalIgnoreCase))
-            {
-                conn.Config.FolderPath = targetFolder;
-                PersistSaved();
-                RefreshTree();
-            }
-        }
+            DropConnection(conn, target, container, e);
         else if (dragged is FolderVm folder)
         {
+            // Folders keep their move-into-folder behaviour (they stay alphabetical).
+            string targetFolder = target switch
+            {
+                FolderVm f => f.Path,
+                ConnectionVm c => c.Config.FolderPath ?? "",
+                _ => "",
+            };
             MoveFolder(folder, targetFolder);
         }
+    }
+
+    /// <summary>
+    /// Move <paramref name="conn"/> to a folder and a specific position, then renumber
+    /// that folder's connections so the manual order sticks (and survives a reload).
+    /// </summary>
+    private void DropConnection(ConnectionVm conn, TreeNodeVm? target, TreeViewItem? container, DragEventArgs e)
+    {
+        // Resolve the destination folder and, if dropped on a row, the anchor + side.
+        string targetFolder;
+        SessionConfig? anchor = null;
+        bool after = false;
+
+        if (target is ConnectionVm tc)
+        {
+            if (ReferenceEquals(tc.Config, conn.Config)) return;   // dropped on itself
+            targetFolder = tc.Config.FolderPath ?? "";
+            anchor = tc.Config;
+            after = container != null && e.GetPosition(container).Y > container.RenderSize.Height / 2;
+        }
+        else if (target is FolderVm tf)
+        {
+            targetFolder = tf.Path;      // into the folder, at the end
+        }
+        else
+        {
+            targetFolder = "";           // root, at the end
+        }
+
+        // Current members of the destination folder (excluding the dragged one), in the
+        // order they render now, so we can splice the dragged item into the sequence.
+        var ordered = _saved
+            .Where(c => !ReferenceEquals(c, conn.Config) &&
+                        string.Equals(c.FolderPath ?? "", targetFolder, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(c => c.SortOrder ?? int.MaxValue)
+            .ThenBy(c => c.Display, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        int index = ordered.Count;   // default: append to the end of the folder
+        if (anchor != null)
+        {
+            int a = ordered.IndexOf(anchor);
+            if (a >= 0) index = after ? a + 1 : a;
+        }
+
+        conn.Config.FolderPath = targetFolder;
+        ordered.Insert(index, conn.Config);
+
+        // Renumber the whole folder so every member now has an explicit manual order.
+        for (int i = 0; i < ordered.Count; i++)
+            ordered[i].SortOrder = i;
+
+        PersistSaved();
+        RefreshTree();
+    }
+
+    // ---- insertion-line adorner ----
+
+    private void ShowInsertion(TreeViewItem host, bool atBottom)
+    {
+        if (ReferenceEquals(_insertionHost, host))
+        {
+            if (_insertion != null) _insertion.AtBottom = atBottom;
+            return;
+        }
+        ClearInsertion();
+        var layer = AdornerLayer.GetAdornerLayer(host);
+        if (layer == null) return;
+        _insertion = new InsertionAdorner(host) { AtBottom = atBottom };
+        layer.Add(_insertion);
+        _insertionHost = host;
+    }
+
+    private void ClearInsertion()
+    {
+        if (_insertion != null && _insertionHost != null)
+            AdornerLayer.GetAdornerLayer(_insertionHost)?.Remove(_insertion);
+        _insertion = null;
+        _insertionHost = null;
     }
 
     /// <summary>Reparent a folder (and everything inside it) under <paramref name="newParent"/>.</summary>
