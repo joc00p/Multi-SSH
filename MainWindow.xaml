@@ -11,8 +11,9 @@
             <Setter Property="Foreground" Value="{DynamicResource Chrome.Text}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource Chrome.ButtonBorder}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="10,4"/>
-            <Setter Property="Margin" Value="0,0,6,0"/>
+            <Setter Property="Padding" Value="6,2"/>
+            <Setter Property="Margin" Value="0,0,3,0"/>
+            <Setter Property="FontSize" Value="11"/>
             <Setter Property="Cursor" Value="Hand"/>
             <!-- Toolbar/sidebar buttons never take keyboard focus away from the terminal. -->
             <Setter Property="Focusable" Value="False"/>
