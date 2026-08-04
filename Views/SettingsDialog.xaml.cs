@@ -47,6 +47,7 @@ public partial class SettingsDialog : Window
         ChkResetKeypress.IsChecked = s.ResetScrollbackOnKeypress;
         ChkResetActivity.IsChecked = s.ResetScrollbackOnActivity;
         ChkPushErased.IsChecked = s.PushErasedToScrollback;
+        ChkWindowCounter.IsChecked = s.ShowWindowCounter;
 
         var ver = Assembly.GetExecutingAssembly().GetName().Version;
         VersionText.Text = $"Multi-SSH version {ver?.ToString(3) ?? "1.0"}";
@@ -128,6 +129,7 @@ public partial class SettingsDialog : Window
         s.ResetScrollbackOnKeypress = ChkResetKeypress.IsChecked == true;
         s.ResetScrollbackOnActivity = ChkResetActivity.IsChecked == true;
         s.PushErasedToScrollback = ChkPushErased.IsChecked == true;
+        s.ShowWindowCounter = ChkWindowCounter.IsChecked == true;
 
         s.Save();
         DialogResult = true;

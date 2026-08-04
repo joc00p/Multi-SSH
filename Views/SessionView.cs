@@ -113,8 +113,13 @@ public class SessionView : Grid
         }
     }
 
-    /// <summary>Set the "x of y" open-window counter shown at the bottom of the frame.</summary>
-    public void SetPosition(int index, int total) => _position.Text = $"{index} of {total}";
+    /// <summary>Set the "x of y" open-window counter shown at the bottom of the frame.
+    /// Hidden entirely when disabled in Settings.</summary>
+    public void SetPosition(int index, int total)
+    {
+        _position.Text = $"{index} of {total}";
+        _position.Visibility = AppSettings.Current.ShowWindowCounter ? Visibility.Visible : Visibility.Collapsed;
+    }
 
     public SessionView(SessionConfig cfg)
     {

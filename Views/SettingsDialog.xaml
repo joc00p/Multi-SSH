@@ -78,6 +78,10 @@
                     <TextBox x:Name="RowsBox" Width="60" VerticalContentAlignment="Center"/>
                 </StackPanel>
 
+                <!-- Window counter -->
+                <CheckBox x:Name="ChkWindowCounter" Margin="0,14,0,0"
+                          Content="Show the 'x of y' window counter at the bottom of each session"/>
+
                 <!-- Resize behaviour -->
                 <TextBlock Text="When the window is resized" FontWeight="Bold" Margin="0,16,0,8"/>
                 <StackPanel>
