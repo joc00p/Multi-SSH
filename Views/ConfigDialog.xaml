@@ -104,14 +104,62 @@
                         <ComboBox x:Name="KindCombo" Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,4"
                                   SelectionChanged="KindCombo_SelectionChanged"
                                   ToolTip="SSH connects to a remote host. The local shells run on this PC.">
-                            <ComboBoxItem Content="SSH (remote host)"/>
-                            <ComboBoxItem Content="Local — PowerShell"/>
-                            <ComboBoxItem Content="Local — Command Prompt"/>
-                            <ComboBoxItem Content="Local — Bash (Git for Windows)"/>
-                            <ComboBoxItem Content="Local — WSL"/>
-                            <ComboBoxItem Content="SFTP (file transfer)"/>
-                            <ComboBoxItem Content="SCP (file copy)"/>
-                            <ComboBoxItem Content="WebDAV (HTTP file)"/>
+                            <ComboBoxItem>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="SSH" FontWeight="Bold" FontSize="10" Foreground="#2E86C1"
+                                               Width="26" TextAlignment="Center" VerticalAlignment="Center"/>
+                                    <TextBlock Text="SSH (remote host)" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </ComboBoxItem>
+                            <ComboBoxItem>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🌐" FontSize="13" Foreground="#2472C8"
+                                               Width="26" TextAlignment="Center" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Local — PowerShell" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </ComboBoxItem>
+                            <ComboBoxItem>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&gt;_" FontWeight="Bold" FontSize="12" Foreground="#606060"
+                                               Width="26" TextAlignment="Center" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Local — Command Prompt" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </ComboBoxItem>
+                            <ComboBoxItem>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="$" FontWeight="Bold" FontSize="13" Foreground="#2E7D14"
+                                               Width="26" TextAlignment="Center" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Local — Bash (Git for Windows)" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </ComboBoxItem>
+                            <ComboBoxItem>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🐧" FontSize="13" Foreground="#E95420"
+                                               Width="26" TextAlignment="Center" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Local — WSL" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </ComboBoxItem>
+                            <ComboBoxItem>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="⇅" FontWeight="Bold" FontSize="14" Foreground="#17A2B8"
+                                               Width="26" TextAlignment="Center" VerticalAlignment="Center"/>
+                                    <TextBlock Text="SFTP (file transfer)" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </ComboBoxItem>
+                            <ComboBoxItem>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="⇄" FontWeight="Bold" FontSize="14" Foreground="#6D28D9"
+                                               Width="26" TextAlignment="Center" VerticalAlignment="Center"/>
+                                    <TextBlock Text="SCP (file copy)" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </ComboBoxItem>
+                            <ComboBoxItem>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="☁" FontSize="13" Foreground="#B45309"
+                                               Width="26" TextAlignment="Center" VerticalAlignment="Center"/>
+                                    <TextBlock Text="WebDAV (HTTP file)" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </ComboBoxItem>
                         </ComboBox>
 
                         <TextBlock x:Name="HostLabel" Text="Host Name (or IP)" VerticalAlignment="Center" Grid.Row="1"/>
