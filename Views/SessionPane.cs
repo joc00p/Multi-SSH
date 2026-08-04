@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
+using MultiSSH.Services;
 
 namespace MultiSSH.Views;
 
@@ -27,14 +28,11 @@ public class SessionPane : Border
     /// <summary>Raised when the header is double-clicked — toggle maximize/restore.</summary>
     public event Action<SessionPane>? MaximizeToggleRequested;
 
-    private static readonly Color ActiveColor = Color.FromRgb(0x3B, 0x78, 0xFF);
-    private static readonly Color InactiveColor = Color.FromRgb(0x3A, 0x3A, 0x42);
-
     public SessionPane(SessionView session)
     {
         Session = session;
         BorderThickness = new Thickness(2);
-        BorderBrush = new SolidColorBrush(InactiveColor);
+        SetResourceReference(BorderBrushProperty, ThemeManager.ButtonBorder);
 
         var dock = new DockPanel { LastChildFill = true };
 
@@ -51,11 +49,11 @@ public class SessionPane : Border
         _titleText = new TextBlock
         {
             Text = session.TabTitle,
-            Foreground = Brushes.White,
             VerticalAlignment = VerticalAlignment.Center,
             Margin = new Thickness(6, 0, 0, 0),
             TextTrimming = TextTrimming.CharacterEllipsis,
         };
+        _titleText.SetResourceReference(TextBlock.ForegroundProperty, ThemeManager.Text);
 
         var reconnectBtn = MakeHeaderButton("⟳", "Reconnect");
         reconnectBtn.Click += (_, _) => ReconnectRequested?.Invoke(this);
@@ -78,11 +76,11 @@ public class SessionPane : Border
 
         _header = new Border
         {
-            Background = new SolidColorBrush(Color.FromRgb(0x2A, 0x2A, 0x30)),
             Height = 26,
             Child = headerGrid,
             ToolTip = "Double-click to maximize / restore",
         };
+        _header.SetResourceReference(Border.BackgroundProperty, ThemeManager.HeaderBg);
         DockPanel.SetDock(_header, Dock.Top);
         dock.Children.Add(_header);
         dock.Children.Add(session);
@@ -128,13 +126,13 @@ public class SessionPane : Border
         set
         {
             _active = value;
-            BorderBrush = new SolidColorBrush(value ? ActiveColor : InactiveColor);
+            SetResourceReference(BorderBrushProperty, value ? ThemeManager.Accent : ThemeManager.ButtonBorder);
         }
     }
 
     private static Button MakeHeaderButton(string glyph, string tip)
     {
-        return new Button
+        var b = new Button
         {
             Content = glyph,
             ToolTip = tip,
@@ -142,11 +140,12 @@ public class SessionPane : Border
             Height = 26,
             Padding = new Thickness(0),
             Background = Brushes.Transparent,
-            Foreground = Brushes.White,
             BorderThickness = new Thickness(0),
             Cursor = Cursors.Hand,
             FontSize = 12,
         };
+        b.SetResourceReference(Control.ForegroundProperty, ThemeManager.Text);
+        return b;
     }
 
     /// <summary>Remove this pane from whatever parent currently holds it.</summary>

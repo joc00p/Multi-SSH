@@ -4,12 +4,12 @@
         xmlns:vm="clr-namespace:MultiSSH.Views"
         Title="Multi-SSH" Height="720" Width="1080"
         Icon="Assets/multissh.ico"
-        Background="#1E1E24" WindowStartupLocation="CenterScreen">
+        Background="{DynamicResource Chrome.WindowBg}" WindowStartupLocation="CenterScreen">
     <Window.Resources>
         <Style TargetType="Button" x:Key="ToolBtn">
-            <Setter Property="Background" Value="#2D2D36"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderBrush" Value="#3A3A44"/>
+            <Setter Property="Background" Value="{DynamicResource Chrome.ButtonBg}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Chrome.Text}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Chrome.ButtonBorder}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="10,4"/>
             <Setter Property="Margin" Value="0,0,6,0"/>
@@ -36,7 +36,7 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="ToggleButton">
                         <Border Background="Transparent" Width="16" Height="16">
-                            <Path x:Name="Arrow" Fill="#B0B0B0"
+                            <Path x:Name="Arrow" Fill="{DynamicResource Chrome.MutedText}"
                                   HorizontalAlignment="Center" VerticalAlignment="Center"
                                   Data="M 0 0 L 4 4 L 0 8 Z"/>
                         </Border>
@@ -53,7 +53,7 @@
 
     <DockPanel>
         <!-- Toolbar -->
-        <Border DockPanel.Dock="Top" Background="#25252B" Padding="8">
+        <Border DockPanel.Dock="Top" Background="{DynamicResource Chrome.ToolbarBg}" Padding="8">
             <DockPanel LastChildFill="False">
                 <!-- Left: session/view controls -->
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
@@ -71,8 +71,12 @@
                     </Button>
                     <Button x:Name="HotKeysBtn" Content="⌨ Hot Keys" Style="{StaticResource ToolBtn}" Click="HotKeys_Click"/>
                     <Button x:Name="SettingsBtn" Content="⚙ Settings" Style="{StaticResource ToolBtn}" Click="Settings_Click"/>
-                    <Separator Margin="6,0" Background="#3A3A44"/>
-                    <TextBlock Text="View:" Foreground="#AAA" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                    <Button x:Name="ThemeBtn" Content="🌙 Dark" Style="{StaticResource ToolBtn}" Click="Theme_Click"
+                            ToolTip="Toggle light / dark theme"/>
+                    <Button x:Name="CurlBtn" Content="🌐 Curl" Style="{StaticResource ToolBtn}" Click="Curl_Click"
+                            ToolTip="Open the curl connectivity tester"/>
+                    <Separator Margin="6,0" Background="{DynamicResource Chrome.Border}"/>
+                    <TextBlock Text="View:" Foreground="{DynamicResource Chrome.MutedText}" VerticalAlignment="Center" Margin="0,0,6,0"/>
                     <!-- Four layouts in a compact 2x2 block -->
                     <UniformGrid Rows="2" Columns="2" VerticalAlignment="Center">
                         <Button x:Name="TabsBtn" Content="▭ Tabs" Style="{StaticResource ViewBtn}"
@@ -89,7 +93,7 @@
 
                 <!-- Right: broadcast one command to every open session -->
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
-                    <TextBlock Text="Send to all:" Foreground="#AAA" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                    <TextBlock Text="Send to all:" Foreground="{DynamicResource Chrome.MutedText}" VerticalAlignment="Center" Margin="0,0,6,0"/>
                     <ComboBox x:Name="BroadcastCombo" Width="240" IsEditable="True" Height="26"
                               VerticalContentAlignment="Center"
                               ToolTip="Type a command or pick a common one, then Send to broadcast it to every open session."
@@ -136,7 +140,7 @@
             </Grid.RowDefinitions>
 
         <!-- Sidebar: session manager tree (folders -> connections) -->
-        <Border x:Name="SidebarBorder" Background="#25252B">
+        <Border x:Name="SidebarBorder" Background="{DynamicResource Chrome.SidebarBg}">
             <DockPanel>
                 <DockPanel DockPanel.Dock="Top" Margin="10,10,8,6">
                     <Button x:Name="MinimizeSidebarBtn" DockPanel.Dock="Right" Content="—" Padding="6,2" Margin="0"
@@ -149,13 +153,13 @@
                             Style="{StaticResource ToolBtn}" ToolTip="Dock to left" Click="DockLeft_Click"/>
                     <Button x:Name="NewFolderBtn" DockPanel.Dock="Right" Content="🗀+" Padding="6,2" Margin="0,0,4,0"
                             Style="{StaticResource ToolBtn}" ToolTip="New folder" Click="NewFolder_Click"/>
-                    <TextBlock Text="SESSION MANAGER" Foreground="#888" FontSize="11" FontWeight="Bold"
+                    <TextBlock Text="SESSION MANAGER" Foreground="{DynamicResource Chrome.MutedText}" FontSize="11" FontWeight="Bold"
                                VerticalAlignment="Center"/>
                 </DockPanel>
                 <TextBlock DockPanel.Dock="Bottom"
                            Text="Double-click to open · drag onto a folder to move · drag between rows to reorder · right-click for options"
-                           Foreground="#666" FontSize="10" TextWrapping="Wrap" Margin="10,6,10,10"/>
-                <TreeView x:Name="SessionTreeView" Background="Transparent" BorderThickness="0" Foreground="White"
+                           Foreground="{DynamicResource Chrome.MutedText}" FontSize="10" TextWrapping="Wrap" Margin="10,6,10,10"/>
+                <TreeView x:Name="SessionTreeView" Background="Transparent" BorderThickness="0" Foreground="{DynamicResource Chrome.Text}"
                           AllowDrop="True"
                           ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                           MouseDoubleClick="Tree_MouseDoubleClick"
@@ -197,7 +201,7 @@
                     <TreeView.ItemContainerStyle>
                         <Style TargetType="TreeViewItem">
                             <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
-                            <Setter Property="Foreground" Value="White"/>
+                            <Setter Property="Foreground" Value="{DynamicResource Chrome.Text}"/>
                             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
                             <!-- Custom template: the header column is star-width so each row
                                  fills the sidebar and the docked ✕ reaches the right edge. -->
@@ -232,7 +236,7 @@
                                                 <Setter TargetName="Expander" Property="Visibility" Value="Hidden"/>
                                             </Trigger>
                                             <Trigger Property="IsSelected" Value="True">
-                                                <Setter TargetName="Bd" Property="Background" Value="#403B78FF"/>
+                                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Chrome.SelectionBg}"/>
                                             </Trigger>
                                         </ControlTemplate.Triggers>
                                     </ControlTemplate>
@@ -258,23 +262,23 @@
         </Border>
 
         <!-- Minimized state: a thin tab on the docked edge that restores the panel -->
-        <Border x:Name="SidebarTab" Background="#25252B" Visibility="Collapsed"
+        <Border x:Name="SidebarTab" Background="{DynamicResource Chrome.SidebarBg}" Visibility="Collapsed"
                 Cursor="Hand" MouseLeftButtonUp="SidebarTab_Click"
                 ToolTip="Show the session manager">
-            <TextBlock x:Name="SidebarTabText" Text="SESSION MANAGER" Foreground="#888"
+            <TextBlock x:Name="SidebarTabText" Text="SESSION MANAGER" Foreground="{DynamicResource Chrome.MutedText}"
                        FontSize="11" FontWeight="Bold" Margin="6"
                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
         </Border>
 
         <!-- Drag to resize the docked panel -->
-        <GridSplitter x:Name="SidebarSplitter" Background="#3A3A44"
+        <GridSplitter x:Name="SidebarSplitter" Background="{DynamicResource Chrome.Border}"
                       DragCompleted="SidebarSplitter_DragCompleted"/>
 
         <!-- Content host -->
-        <Grid x:Name="ContentHost" Grid.Column="2" Grid.Row="0" Background="#12121A">
+        <Grid x:Name="ContentHost" Grid.Column="2" Grid.Row="0" Background="{DynamicResource Chrome.ContentBg}">
             <TextBlock x:Name="EmptyHint"
                        Text="No sessions open.&#x0a;Click &quot;＋ New Session&quot; or double-click a saved session."
-                       Foreground="#666" TextAlignment="Center"
+                       Foreground="{DynamicResource Chrome.MutedText}" TextAlignment="Center"
                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
         </Grid>
         </Grid>
