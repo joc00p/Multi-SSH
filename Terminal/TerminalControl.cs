@@ -8,6 +8,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
 using MultiSSH.Models;
+using MultiSSH.Services;
 
 namespace MultiSSH.Terminal;
 
@@ -26,6 +27,7 @@ public class TerminalControl : Control
     private Typeface _typeface = null!;
     private Typeface _boldTypeface = null!;
     private double _cellW, _cellH, _baseline;
+    private double _fontSize;   // effective size (may differ from _cfg.FontSize in font-scaling resize mode)
     private double _pixelsPerDip = 1.0;
 
     private int _scrollOffset;            // lines scrolled up into history
@@ -56,6 +58,7 @@ public class TerminalControl : Control
     public TerminalControl(SessionConfig cfg)
     {
         _cfg = cfg;
+        _fontSize = cfg.FontSize;
         _scheme = ColorScheme.Get(cfg.ColorScheme);
         _buffer = new TerminalBuffer(cfg.Rows, cfg.Columns) { MaxScrollback = cfg.ScrollbackLines };
         _parser = new AnsiParser(_buffer);
@@ -141,7 +144,7 @@ public class TerminalControl : Control
         _boldTypeface = new Typeface(family, FontStyles.Normal, FontWeights.Bold, FontStretches.Normal);
 
         var ft = new FormattedText("M", CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
-            _typeface, _cfg.FontSize, Brushes.White, _pixelsPerDip);
+            _typeface, _fontSize, Brushes.White, _pixelsPerDip);
         _cellW = Math.Ceiling(ft.WidthIncludingTrailingWhitespace);
         _cellH = Math.Ceiling(ft.Height);
         _baseline = ft.Baseline;
@@ -159,6 +162,8 @@ public class TerminalControl : Control
     /// <summary>Parse all queued output on the UI thread (called from the render tick).</summary>
     private void DrainIncoming()
     {
+        _buffer.PushErasedToScrollback = AppSettings.Current.PushErasedToScrollback;
+
         bool any = false;
         while (_incoming.TryDequeue(out var chunk))
         {
@@ -167,7 +172,8 @@ public class TerminalControl : Control
         }
         if (any)
         {
-            _scrollOffset = 0; // snap to bottom on new output
+            // "Reset scrollback on display activity": snap to the bottom on new output.
+            if (AppSettings.Current.ResetScrollbackOnActivity) _scrollOffset = 0;
             _dirty = true;
         }
     }
@@ -198,14 +204,59 @@ public class TerminalControl : Control
     private void RecomputeGrid(Size size)
     {
         if (_cellW <= 0 || _cellH <= 0) return;
-        int cols = Math.Max(1, (int)((size.Width - Padding.Left - Padding.Right) / _cellW));
-        int rows = Math.Max(1, (int)((size.Height - Padding.Top - Padding.Bottom) / _cellH));
+        double availW = size.Width - Padding.Left - Padding.Right;
+        double availH = size.Height - Padding.Top - Padding.Bottom;
+        if (availW <= 0 || availH <= 0) return;
+
+        bool maximized = (Window.GetWindow(this) as Window)?.WindowState == WindowState.Maximized;
+        switch (AppSettings.Current.ResizeBehavior)
+        {
+            case "Forbid":
+                SetGrid(Math.Max(1, _cfg.Columns), Math.Max(1, _cfg.Rows));
+                break;
+            case "FontSize":
+                ScaleFontToFit(availW, availH);
+                break;
+            case "FontSizeMax":
+                if (maximized) ScaleFontToFit(availW, availH);
+                else ReflowGrid(availW, availH);
+                break;
+            default: // RowsCols
+                ReflowGrid(availW, availH);
+                break;
+        }
+    }
+
+    private void ReflowGrid(double availW, double availH)
+        => SetGrid(Math.Max(1, (int)(availW / _cellW)), Math.Max(1, (int)(availH / _cellH)));
+
+    private void SetGrid(int cols, int rows)
+    {
         if (cols != _buffer.Cols || rows != _buffer.Rows)
         {
             _buffer.Resize(rows, cols);
             _dirty = true;
             GridResized?.Invoke(cols, rows);
         }
+    }
+
+    /// <summary>Keep the configured rows/cols and scale the font so they fill the pane.</summary>
+    private void ScaleFontToFit(double availW, double availH)
+    {
+        int cols = Math.Max(1, _cfg.Columns);
+        int rows = Math.Max(1, _cfg.Rows);
+
+        double perColW = _cellW / _fontSize;   // cell width per point (≈ constant)
+        double perRowH = _cellH / _fontSize;
+        double newSize = Math.Max(6, Math.Min(availW / (cols * perColW), availH / (rows * perRowH)));
+
+        if (Math.Abs(newSize - _fontSize) > 0.25)
+        {
+            _fontSize = newSize;
+            BuildTypeface();
+            _dirty = true;
+        }
+        SetGrid(cols, rows);
     }
 
     // -------------------- rendering --------------------
@@ -298,7 +349,7 @@ public class TerminalControl : Control
             fg = Color.FromArgb(160, fg.R, fg.G, fg.B);
 
         var ft = new FormattedText(text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
-            tf, _cfg.FontSize, new SolidColorBrush(fg), _pixelsPerDip);
+            tf, _fontSize, new SolidColorBrush(fg), _pixelsPerDip);
 
         dc.DrawText(ft, new Point(x, y));
 
@@ -333,6 +384,11 @@ public class TerminalControl : Control
     private void DrawScrollbarHint(DrawingContext dc, int history)
     {
         if (history == 0) return;
+        // "Display scrollbar" (and its full-screen variant when the window is maximized).
+        bool maximized = (Window.GetWindow(this) as Window)?.WindowState == WindowState.Maximized;
+        bool show = maximized ? AppSettings.Current.ScrollbarInFullScreen : AppSettings.Current.DisplayScrollbar;
+        if (!show) return;
+
         double trackH = RenderSize.Height;
         int total = history + _buffer.Rows;
         double thumbH = Math.Max(20, trackH * _buffer.Rows / total);
@@ -468,6 +524,12 @@ public class TerminalControl : Control
     protected override void OnLostKeyboardFocus(KeyboardFocusChangedEventArgs e)
     { _dirty = true; base.OnLostKeyboardFocus(e); }
 
+    /// <summary>Snap to the bottom on keypress when "Reset scrollback on keypress" is enabled.</summary>
+    private void ResetScrollOnKeypress()
+    {
+        if (AppSettings.Current.ResetScrollbackOnKeypress) _scrollOffset = 0;
+    }
+
     protected override void OnTextInput(TextCompositionEventArgs e)
     {
         if (!string.IsNullOrEmpty(e.Text))
@@ -475,7 +537,7 @@ public class TerminalControl : Control
             // Filter out control chars already handled in OnKeyDown.
             if (e.Text.Length == 1 && e.Text[0] < 0x20) { base.OnTextInput(e); return; }
             Input?.Invoke(Encoding.UTF8.GetBytes(e.Text));
-            _scrollOffset = 0;
+            ResetScrollOnKeypress();
             e.Handled = true;
         }
         base.OnTextInput(e);
@@ -498,7 +560,7 @@ public class TerminalControl : Control
             if (hk.Matches(pressed, mods) && !string.IsNullOrEmpty(hk.Command))
             {
                 Input?.Invoke(Encoding.UTF8.GetBytes(hk.Command + (hk.SendEnter ? "\r" : "")));
-                _scrollOffset = 0;
+                ResetScrollOnKeypress();
                 e.Handled = true;
                 return;
             }
@@ -508,7 +570,7 @@ public class TerminalControl : Control
         if (seq != null)
         {
             Input?.Invoke(seq);
-            _scrollOffset = 0;
+            ResetScrollOnKeypress();
             e.Handled = true;
             return;
         }

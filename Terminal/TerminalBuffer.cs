@@ -199,12 +199,15 @@ public class TerminalBuffer
         SetCursor(0, 0);
     }
 
+    /// <summary>When false, lines scrolled off the top are discarded instead of kept in scrollback.</summary>
+    public bool PushErasedToScrollback { get; set; } = true;
+
     public void ScrollUp(int n)
     {
         for (int i = 0; i < n; i++)
         {
             // Push the top scroll-region line into scrollback (only when region is full screen top).
-            if (_scrollTop == 0)
+            if (_scrollTop == 0 && PushErasedToScrollback)
             {
                 _scrollback.Add(_grid[0]);
                 if (_scrollback.Count > MaxScrollback)
