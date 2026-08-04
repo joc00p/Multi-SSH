@@ -61,7 +61,7 @@
                                 <TextBlock Text="🌐" FontSize="13" Foreground="#2472C8"/>
                             </Button>
                             <Button x:Name="IconCmd" Tag="2" Style="{StaticResource KindIcon}"
-                                    ToolTip="Local — Command Prompt" Click="KindIcon_Click">
+                                    ToolTip="Local — CMD" Click="KindIcon_Click">
                                 <TextBlock Text="&gt;_" FontSize="12" FontWeight="Bold" Foreground="#606060"/>
                             </Button>
                             <Button x:Name="IconBash" Tag="3" Style="{StaticResource KindIcon}"
@@ -122,7 +122,7 @@
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="&gt;_" FontWeight="Bold" FontSize="12" Foreground="#606060"
                                                Width="26" TextAlignment="Center" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Local — Command Prompt" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Local — CMD" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </ComboBoxItem>
                             <ComboBoxItem>

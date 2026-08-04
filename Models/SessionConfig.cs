@@ -102,7 +102,7 @@ public class SessionConfig
     /// <summary>Display name for a session kind.</summary>
     public static string KindName(SessionKind kind) => kind switch
     {
-        SessionKind.Cmd => "Command Prompt",
+        SessionKind.Cmd => "CMD",
         SessionKind.Bash => "Bash",
         SessionKind.Wsl => "WSL",
         SessionKind.PowerShell => "PowerShell",
