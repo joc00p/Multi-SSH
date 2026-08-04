@@ -22,7 +22,13 @@ public enum SessionKind
     /// <summary>A local bash console on this machine (Git for Windows).</summary>
     Bash,
     /// <summary>A local WSL shell (wsl.exe — the default distribution).</summary>
-    Wsl
+    Wsl,
+    /// <summary>An interactive SFTP file-transfer session over SSH.</summary>
+    Sftp,
+    /// <summary>An interactive SCP file-copy session over SSH.</summary>
+    Scp,
+    /// <summary>An interactive WebDAV file session over HTTP(S).</summary>
+    WebDav
 }
 
 /// <summary>
@@ -79,9 +85,13 @@ public class SessionConfig
     public bool CopyOnSelect { get; set; } = true;
     public bool PasteOnRightClick { get; set; } = true;
 
-    /// <summary>True for a shell running on this machine rather than over SSH.</summary>
+    /// <summary>True for a shell running on this machine rather than a remote connection.</summary>
     [JsonIgnore]
-    public bool IsLocal => Kind != SessionKind.Ssh;
+    public bool IsLocal => IsLocalKind(Kind);
+
+    /// <summary>Whether a kind runs locally (vs. a remote SSH/SFTP/SCP/WebDAV connection).</summary>
+    public static bool IsLocalKind(SessionKind k) =>
+        k is SessionKind.PowerShell or SessionKind.Cmd or SessionKind.Bash or SessionKind.Wsl;
 
     /// <summary>Friendly name of the local shell, e.g. "PowerShell".</summary>
     [JsonIgnore]
@@ -94,6 +104,9 @@ public class SessionConfig
         SessionKind.Bash => "Bash",
         SessionKind.Wsl => "WSL",
         SessionKind.PowerShell => "PowerShell",
+        SessionKind.Sftp => "SFTP",
+        SessionKind.Scp => "SCP",
+        SessionKind.WebDav => "WebDAV",
         _ => "SSH",
     };
 

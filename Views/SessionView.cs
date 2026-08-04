@@ -60,6 +60,9 @@ public class SessionView : Grid
         SessionKind.Cmd => Color.FromRgb(0x80, 0x80, 0x80),        // gray
         SessionKind.Bash => Color.FromRgb(0x4E, 0xAA, 0x25),       // green
         SessionKind.Wsl => Color.FromRgb(0xE9, 0x54, 0x20),        // ubuntu orange
+        SessionKind.Sftp => Color.FromRgb(0x17, 0xA2, 0xB8),       // teal
+        SessionKind.Scp => Color.FromRgb(0x6D, 0x28, 0xD9),        // violet
+        SessionKind.WebDav => Color.FromRgb(0xB4, 0x53, 0x09),     // amber/brown
         _ => Color.FromRgb(0x3A, 0x96, 0xDD),                       // SSH: cyan
     };
 
@@ -71,6 +74,9 @@ public class SessionView : Grid
         SessionKind.Cmd => ">_",
         SessionKind.Bash => "$",
         SessionKind.Wsl => "🐧",
+        SessionKind.Sftp => "⇅",
+        SessionKind.Scp => "⇄",
+        SessionKind.WebDav => "☁",
         _ => "SSH",
     };
 
@@ -169,9 +175,9 @@ public class SessionView : Grid
 
         for (int attempt = 1; ; attempt++)
         {
-            var ssh = new SshConnection(_cfg);
-            HookBackend(ssh);
-            _conn = ssh;
+            var backend = CreateRemoteBackend();
+            HookBackend(backend);
+            _conn = backend;
 
             try
             {
@@ -245,6 +251,15 @@ public class SessionView : Grid
             Fail(ex.Message);
         }
     }
+
+    /// <summary>Create the right remote backend for the session kind.</summary>
+    private ITerminalBackend CreateRemoteBackend() => _cfg.Kind switch
+    {
+        SessionKind.Sftp => new SftpConnection(_cfg),
+        SessionKind.Scp => new ScpConnection(_cfg),
+        SessionKind.WebDav => new WebDavConnection(_cfg),
+        _ => new SshConnection(_cfg),
+    };
 
     /// <summary>Wire a backend's events to this view (shared by SSH and local shells).</summary>
     private void HookBackend(ITerminalBackend backend)

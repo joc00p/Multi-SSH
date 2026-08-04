@@ -33,7 +33,7 @@ public class SshConnection : ITerminalBackend
     {
         StatusChanged?.Invoke($"Connecting to {_cfg.Host}:{_cfg.Port} …");
 
-        var info = BuildConnectionInfo();
+        var info = RemoteAuth.BuildConnectionInfo(_cfg);
         _client = new SshClient(info);
         _client.KeepAliveInterval = _cfg.KeepAliveSeconds > 0
             ? TimeSpan.FromSeconds(_cfg.KeepAliveSeconds)
@@ -86,79 +86,6 @@ public class SshConnection : ITerminalBackend
                 ShellExited?.Invoke();
             }
         }
-    }
-
-    private ConnectionInfo BuildConnectionInfo()
-    {
-        var methods = new List<AuthenticationMethod>();
-
-        switch (_cfg.Auth)
-        {
-            case AuthMethod.PublicKey:
-                if (string.IsNullOrWhiteSpace(_cfg.PrivateKeyPath) || !File.Exists(_cfg.PrivateKeyPath))
-                    throw new FileNotFoundException("Private key file not found", _cfg.PrivateKeyPath);
-                PrivateKeyFile keyFile;
-                try
-                {
-                    keyFile = string.IsNullOrEmpty(_cfg.KeyPassphrase)
-                        ? new PrivateKeyFile(_cfg.PrivateKeyPath)
-                        : new PrivateKeyFile(_cfg.PrivateKeyPath, _cfg.KeyPassphrase);
-                }
-                catch (Exception ex) when (IsPassphraseProblem(ex))
-                {
-                    throw new KeyPassphraseRequiredException(
-                        string.IsNullOrEmpty(_cfg.KeyPassphrase)
-                            ? "The private key is encrypted and needs a passphrase."
-                            : "Incorrect passphrase for the private key.", ex);
-                }
-                methods.Add(new PrivateKeyAuthenticationMethod(_cfg.Username, keyFile));
-                break;
-
-            case AuthMethod.KeyboardInteractive:
-            {
-                var ki = new KeyboardInteractiveAuthenticationMethod(_cfg.Username);
-                ki.AuthenticationPrompt += (_, e) =>
-                {
-                    foreach (var prompt in e.Prompts)
-                        prompt.Response = _cfg.Password ?? "";
-                };
-                methods.Add(ki);
-                break;
-            }
-
-            case AuthMethod.Agent:
-                // SSH.NET has no built-in agent transport; fall back to password if supplied.
-                methods.Add(new PasswordAuthenticationMethod(_cfg.Username, _cfg.Password ?? ""));
-                break;
-
-            default: // Password
-                methods.Add(new PasswordAuthenticationMethod(_cfg.Username, _cfg.Password ?? ""));
-                // Also allow keyboard-interactive with the same password (common on Linux).
-                var kip = new KeyboardInteractiveAuthenticationMethod(_cfg.Username);
-                kip.AuthenticationPrompt += (_, e) =>
-                {
-                    foreach (var prompt in e.Prompts)
-                        prompt.Response = _cfg.Password ?? "";
-                };
-                methods.Add(kip);
-                break;
-        }
-
-        var info = new ConnectionInfo(_cfg.Host, _cfg.Port, _cfg.Username, methods.ToArray())
-        {
-            Timeout = TimeSpan.FromSeconds(_cfg.ConnectTimeoutSeconds),
-        };
-        return info;
-    }
-
-    private static bool IsPassphraseProblem(Exception ex)
-    {
-        if (ex is SshPassPhraseNullOrEmptyException) return true;
-        if (ex is System.Security.Cryptography.CryptographicException) return true;
-        var m = ex.Message?.ToLowerInvariant() ?? "";
-        return m.Contains("passphrase") || m.Contains("pass phrase")
-            || m.Contains("invalid pad") || m.Contains("decrypt")
-            || m.Contains("bad data");
     }
 
     public void Send(byte[] data)
