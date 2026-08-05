@@ -28,7 +28,9 @@ public enum SessionKind
     /// <summary>An interactive SCP file-copy session over SSH.</summary>
     Scp,
     /// <summary>An interactive WebDAV file session over HTTP(S).</summary>
-    WebDav
+    WebDav,
+    /// <summary>A WinSCP-style graphical dual-pane SFTP file manager (local ↔ remote).</summary>
+    Wscp
 }
 
 /// <summary>
@@ -113,6 +115,7 @@ public class SessionConfig
         SessionKind.Sftp => "SFTP",
         SessionKind.Scp => "SCP",
         SessionKind.WebDav => "WebDAV",
+        SessionKind.Wscp => "WSCP",
         _ => "SSH",
     };
 

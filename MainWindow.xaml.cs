@@ -73,6 +73,10 @@ public partial class MainWindow : Window
     {
         if (e.Handled || _active == null) return;
 
+        // A WSCP file-manager session has no terminal — leave its own controls
+        // (file lists, path boxes) to handle the keyboard normally.
+        if (_active.Session.IsFileManager) return;
+
         var focused = Keyboard.FocusedElement as DependencyObject;
         if (IsTextEntry(focused) || IsInTerminal(focused)) return;
 
