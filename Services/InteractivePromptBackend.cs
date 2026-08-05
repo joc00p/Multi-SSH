@@ -168,9 +168,21 @@ public abstract class InteractivePromptBackend : ITerminalBackend
         _disposed = true;
         _connected = false;
         try { _queue.CompleteAdding(); } catch { }
-        // Let any in-flight command finish (bounded) before disposing the client it uses.
-        try { _worker?.Join(500); } catch { }
-        try { DisposeClient(); } catch { }
+
+        // Tear down on a background thread: never block the UI, and let an in-flight file
+        // transfer on the worker finish before the client it is using gets disposed. The
+        // old inline 500 ms join disposed the client mid-copy on any transfer longer than
+        // that, truncating the downloaded/uploaded file. If the worker is idle the queue
+        // completes and it exits at once; a running transfer gets a generous cap so normal
+        // copies complete, then the client (and the queue) are disposed.
+        var worker = _worker;
+        Task.Run(() =>
+        {
+            try { worker?.Join(TimeSpan.FromSeconds(30)); } catch { }
+            try { DisposeClient(); } catch { }
+            try { _queue.Dispose(); } catch { }
+        });
+
         Closed?.Invoke("Disconnected");
     }
 }
