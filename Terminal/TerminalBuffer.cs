@@ -209,6 +209,7 @@ public class TerminalBuffer
 
     public void ScrollUp(int n)
     {
+        n = Math.Clamp(n, 0, Rows);   // a remote host can send a huge count; never loop billions of times
         for (int i = 0; i < n; i++)
         {
             // Push the top scroll-region line into scrollback (only when region is full screen top).
@@ -233,6 +234,7 @@ public class TerminalBuffer
 
     public void ScrollDown(int n)
     {
+        n = Math.Clamp(n, 0, Rows);
         for (int i = 0; i < n; i++)
         {
             var recycled = _grid[_scrollBottom];
@@ -245,8 +247,11 @@ public class TerminalBuffer
 
     private void BlankLine(Cell[] line)
     {
+        // Honour the current background (BCE — background-colour erase): a full-screen
+        // app that sets a background and then clears/scrolls expects the blanked cells
+        // to take that colour, matching EraseInLine/EraseChars below.
         for (int c = 0; c < line.Length; c++)
-            line[c] = Cell.Blank(Cell.Default, Cell.Default);
+            line[c] = Cell.Blank(_fg, _bg);
     }
 
     // -------------------- erasing --------------------
@@ -286,6 +291,7 @@ public class TerminalBuffer
 
     public void EraseChars(int n)
     {
+        n = Math.Clamp(n, 0, Cols);
         var line = _grid[CursorY];
         for (int c = CursorX; c < CursorX + n && c < Cols; c++)
             line[c] = Cell.Blank(_fg, _bg);
@@ -294,6 +300,7 @@ public class TerminalBuffer
     public void InsertLines(int n)
     {
         if (CursorY < _scrollTop || CursorY > _scrollBottom) return;
+        n = Math.Clamp(n, 0, Rows);
         for (int i = 0; i < n; i++)
         {
             var recycled = _grid[_scrollBottom];
@@ -307,6 +314,7 @@ public class TerminalBuffer
     public void DeleteLines(int n)
     {
         if (CursorY < _scrollTop || CursorY > _scrollBottom) return;
+        n = Math.Clamp(n, 0, Rows);
         for (int i = 0; i < n; i++)
         {
             var recycled = _grid[CursorY];
@@ -319,6 +327,7 @@ public class TerminalBuffer
 
     public void InsertChars(int n)
     {
+        n = Math.Clamp(n, 0, Cols);   // clamp so CursorX + n can't overflow into a negative index
         var line = _grid[CursorY];
         for (int c = Cols - 1; c >= CursorX + n; c--)
             line[c] = line[c - n];
@@ -328,6 +337,7 @@ public class TerminalBuffer
 
     public void DeleteChars(int n)
     {
+        n = Math.Clamp(n, 0, Cols);   // clamp so c + n can't overflow into a negative index
         var line = _grid[CursorY];
         for (int c = CursorX; c < Cols; c++)
             line[c] = (c + n < Cols) ? line[c + n] : Cell.Blank(_fg, _bg);

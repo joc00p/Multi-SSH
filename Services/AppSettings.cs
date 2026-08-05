@@ -97,7 +97,14 @@ public class AppSettings
             if (File.Exists(FilePath))
                 return JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(FilePath)) ?? new AppSettings();
         }
-        catch { /* fall back to defaults */ }
+        catch
+        {
+            // The file exists but couldn't be parsed (e.g. truncated by a crash mid-write).
+            // Preserve it rather than silently discarding the user's folder tree / hotkeys,
+            // so it can be recovered, then start from defaults.
+            try { if (File.Exists(FilePath)) File.Copy(FilePath, FilePath + ".corrupt", overwrite: true); }
+            catch { /* best-effort */ }
+        }
         return new AppSettings();
     }
 
@@ -106,7 +113,18 @@ public class AppSettings
         try
         {
             Directory.CreateDirectory(Dir);
-            File.WriteAllText(FilePath, JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
+            var json = JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true });
+
+            // Atomic write: serialize to a temp file, then swap it in with File.Replace so
+            // a crash or power loss mid-write can never leave a truncated settings.json
+            // (which would reset the session-manager folder tree and all preferences).
+            var tmp = FilePath + ".tmp";
+            File.WriteAllText(tmp, json);
+            if (File.Exists(FilePath))
+                File.Replace(tmp, FilePath, FilePath + ".bak");
+            else
+                File.Move(tmp, FilePath);
+
             _current = this;
         }
         catch { /* ignore write errors */ }

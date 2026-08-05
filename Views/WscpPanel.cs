@@ -228,13 +228,18 @@ public class WscpPanel : Grid
 
     private void RefreshRemote()
     {
-        if (_sftp == null || !_sftp.IsConnected) return;
+        // Never list while another SFTP operation is in flight: SSH.NET's SftpClient is
+        // not safe for concurrent requests, so a Refresh during a transfer could desync
+        // the channel. An in-flight op refreshes on completion, so skipping here is safe.
+        if (_busy) return;
+        var sftp = _sftp;                       // capture: the pane may close and null the field
+        if (sftp == null || !sftp.IsConnected) return;
         var cwd = _remoteCwd;
         Task.Run(() =>
         {
             try
             {
-                var list = _sftp.ListDirectory(cwd).ToList();
+                var list = sftp.ListDirectory(cwd).ToList();
                 Dispatcher.Invoke(() => PopulateRemote(list));
             }
             catch (Exception ex)

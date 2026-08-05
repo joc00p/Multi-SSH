@@ -167,7 +167,10 @@ public class TerminalControl : Control
         bool any = false;
         while (_incoming.TryDequeue(out var chunk))
         {
-            _parser.Feed(chunk, chunk.Length);
+            // Contain any parser/buffer fault to this one terminal: a malformed escape
+            // sequence must never escape the render tick and take down the whole app.
+            try { _parser.Feed(chunk, chunk.Length); }
+            catch { /* drop the offending chunk, keep the session alive */ }
             any = true;
         }
         if (any)
@@ -311,17 +314,21 @@ public class TerminalControl : Control
     {
         var style = line[start];
         bool inverse = (style.Flags & CellFlags.Inverse) != 0;
-        int fgCode = inverse ? style.Bg : style.Fg;
-        int bgCode = inverse ? style.Fg : style.Bg;
 
-        var fg = ColorResolver.Resolve(fgCode, _scheme, isForeground: true);
-        var bg = ColorResolver.Resolve(bgCode, _scheme, isForeground: false);
+        // Resolve each colour in its natural role first (so a Default code maps to the
+        // scheme's foreground/background correctly), THEN swap for inverse. Swapping the
+        // raw codes before resolving cancels out when both are Default, so reverse-video
+        // on default colours (vim/htop/tmux status bars) would render as normal text.
+        var fg = ColorResolver.Resolve(style.Fg, _scheme, isForeground: true);
+        var bg = ColorResolver.Resolve(style.Bg, _scheme, isForeground: false);
+        if (inverse) (fg, bg) = (bg, fg);
 
         double x = ox + start * _cellW;
         double w = (end - start) * _cellW;
 
-        // Background fill (only if non-default or inverse).
-        if (bgCode != Cell.Default || inverse)
+        // Background fill (only when it differs from the terminal background — i.e. an
+        // explicit background was set, or inverse video makes the fill the fg colour).
+        if (style.Bg != Cell.Default || inverse)
             dc.DrawRectangle(new SolidColorBrush(bg), null, new Rect(x, y, w, _cellH));
 
         // Selection highlight overlay.
