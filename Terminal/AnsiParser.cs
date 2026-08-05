@@ -89,7 +89,9 @@ public class AnsiParser
         // Parameter / intermediate bytes.
         if ((c >= '0' && c <= '9') || c == ';' || c == '?' || c == ':' || c == ' ' || c == '>' || c == '!')
         {
-            _params.Append(c);
+            // Cap the parameter run so a malformed/hostile stream of digits can't grow
+            // this buffer without bound. A real CSI never needs more than a few dozen chars.
+            if (_params.Length < 256) _params.Append(c);
             return;
         }
         DispatchCsi(c, _params.ToString());
@@ -221,7 +223,9 @@ public class AnsiParser
     {
         if (b == 0x07) { FinishOsc(); return; }          // BEL terminator
         if (b == 0x1B) { _state = State.OscEsc; return; } // maybe ST (ESC \)
-        _osc.Append((char)b);
+        // Cap the OSC string (e.g. a window title) so a host that opens an OSC and never
+        // terminates it can't grow this buffer until the app runs out of memory.
+        if (_osc.Length < 4096) _osc.Append((char)b);
     }
 
     private void OscEsc(byte b)
