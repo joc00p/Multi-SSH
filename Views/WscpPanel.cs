@@ -42,6 +42,11 @@ public class WscpPanel : Grid
     private readonly TextBox _remotePathBox;
     private readonly TextBlock _remoteHeader;
 
+    // The bordered container for each pane, used to highlight whichever pane is active
+    // (the target of New folder / Rename / Delete).
+    private Border _localPane = null!;
+    private Border _remotePane = null!;
+
     /// <summary>Connection state + status text, surfaced to the hosting SessionView's status strip.</summary>
     public event Action<ConnectionState, string>? StateChanged;
 
@@ -87,8 +92,31 @@ public class WscpPanel : Grid
         SetRow(body, 1);
         Children.Add(body);
 
+        UpdatePaneHighlight();   // reflect the initial active pane
+
         // Local side can be listed immediately, before the connection is up.
         RefreshLocal();
+    }
+
+    /// <summary>Set which pane the folder/rename/delete actions target, and highlight it.</summary>
+    private void SetActivePane(bool remote)
+    {
+        _activeIsRemote = remote;
+        UpdatePaneHighlight();
+    }
+
+    private void UpdatePaneHighlight()
+    {
+        ApplyPaneHighlight(_remotePane, _activeIsRemote);
+        ApplyPaneHighlight(_localPane, !_activeIsRemote);
+    }
+
+    private static void ApplyPaneHighlight(Border? pane, bool active)
+    {
+        if (pane == null) return;
+        pane.SetResourceReference(Border.BorderBrushProperty,
+            active ? ThemeManager.Accent : ThemeManager.ButtonBorder);
+        pane.BorderThickness = new Thickness(active ? 2 : 1);
     }
 
     // -------------------- connection --------------------
@@ -488,9 +516,9 @@ public class WscpPanel : Grid
     {
         var bar = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(4, 3, 4, 3) };
         bar.Children.Add(ToolButton("⟳", "Refresh both panes", (_, _) => { RefreshLocal(); RefreshRemote(); }));
-        bar.Children.Add(ToolButton("＋", "New folder (in the focused pane)", (_, _) => NewFolder()));
-        bar.Children.Add(ToolButton("✎", "Rename selected (in the focused pane)", (_, _) => RenameSelected()));
-        bar.Children.Add(ToolButton("🗑", "Delete selected (in the focused pane)", (_, _) => DeleteSelected()));
+        bar.Children.Add(ToolButton("＋", "New folder in the active pane (highlighted border)", (_, _) => NewFolder()));
+        bar.Children.Add(ToolButton("✎", "Rename the selected item in the active pane (highlighted border)", (_, _) => RenameSelected()));
+        bar.Children.Add(ToolButton("🗑", "Delete the selected items in the active pane (highlighted border)", (_, _) => DeleteSelected()));
         bar.Children.Add(new Separator { Margin = new Thickness(6, 2, 6, 2) });
         bar.Children.Add(ToolButton("Upload ▶", "Upload selected local items to the remote folder", (_, _) => UploadSelected()));
         bar.Children.Add(ToolButton("◀ Download", "Download selected remote items to the local folder", (_, _) => DownloadSelected()));
@@ -568,8 +596,13 @@ public class WscpPanel : Grid
 
         dock.Children.Add(list);
 
-        var border = new Border { BorderThickness = new Thickness(1), Child = dock };
+        // A transparent background makes the whole pane (including empty space) hit-testable,
+        // so clicking anywhere in it — list, path box, header, or gaps — marks it active.
+        var border = new Border { BorderThickness = new Thickness(1), Background = Brushes.Transparent, Child = dock };
         border.SetResourceReference(Border.BorderBrushProperty, ThemeManager.ButtonBorder);
+        border.PreviewMouseDown += (_, _) => SetActivePane(remote);
+        border.PreviewGotKeyboardFocus += (_, _) => SetActivePane(remote);
+        if (remote) _remotePane = border; else _localPane = border;
         return border;
     }
 
@@ -590,9 +623,9 @@ public class WscpPanel : Grid
             SelectionMode = SelectionMode.Extended,
             BorderThickness = new Thickness(0),
         };
+        // Active-pane tracking is handled at the pane border (BuildPane) so a click
+        // anywhere in the pane counts, not only on the list rows.
         bool remote = ReferenceEquals(source, _remoteItems);
-        lv.GotFocus += (_, _) => _activeIsRemote = remote;
-        lv.PreviewMouseDown += (_, _) => _activeIsRemote = remote;
         lv.MouseDoubleClick += (_, _) => OnItemActivated(remote, lv.SelectedItem as FsItem);
         return lv;
     }
