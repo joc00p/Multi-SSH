@@ -253,14 +253,34 @@ public class AnsiParser
     private static int[] ParseParams(string s)
     {
         if (string.IsNullOrEmpty(s)) return Array.Empty<int>();
-        var parts = s.Split(';');
-        var result = new int[parts.Length];
-        for (int i = 0; i < parts.Length; i++)
+        var result = new List<int>();
+        foreach (var part in s.Split(';'))
         {
-            // handle sub-parameters like 38:2:... by splitting on ':' too — take numeric bits
-            var token = parts[i].Replace(':', ';');
-            int.TryParse(token.Split(';')[0], out result[i]);
+            if (part.IndexOf(':') < 0)
+            {
+                int.TryParse(part, out var v);
+                result.Add(v);
+                continue;
+            }
+
+            // Colon sub-parameters (ITU form). For the extended-colour introducers 38/48,
+            // flatten every numeric sub-value so 38:2:R:G:B and 38:5:N parse exactly like
+            // their semicolon forms; an empty colorspace field (38:2::R:G:B, common from
+            // libvte) is skipped so the values still line up as [38,2,R,G,B]. Any other
+            // colon parameter (e.g. 4:3 curly underline) keeps just its first value.
+            var subs = part.Split(':');
+            int.TryParse(subs[0], out var head);
+            result.Add(head);
+            if (head is 38 or 48)
+            {
+                for (int k = 1; k < subs.Length; k++)
+                {
+                    if (subs[k].Length == 0) continue;   // absent colorspace id
+                    int.TryParse(subs[k], out var sv);
+                    result.Add(sv);
+                }
+            }
         }
-        return result;
+        return result.ToArray();
     }
 }
