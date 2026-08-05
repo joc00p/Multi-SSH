@@ -19,7 +19,10 @@ public enum ConnectionState { Idle, Connecting, Connected, Disconnected, Failed 
 public class SessionView : Grid
 {
     private readonly SessionConfig _cfg;
-    private readonly TerminalControl _term;
+    /// <summary>The terminal body — null for a WSCP file-manager session (see <see cref="_wscp"/>).</summary>
+    private readonly TerminalControl? _term;
+    /// <summary>The WinSCP-style file-manager body — non-null only for a WSCP session.</summary>
+    private readonly WscpPanel? _wscp;
     private readonly TextBlock _status;
     private readonly TextBlock _position;
     private readonly Border _statusBar;
@@ -66,6 +69,7 @@ public class SessionView : Grid
         SessionKind.Sftp => Color.FromRgb(0x17, 0xA2, 0xB8),       // teal
         SessionKind.Scp => Color.FromRgb(0x6D, 0x28, 0xD9),        // violet
         SessionKind.WebDav => Color.FromRgb(0xB4, 0x53, 0x09),     // amber/brown
+        SessionKind.Wscp => Color.FromRgb(0x2E, 0x7D, 0x32),       // WinSCP green
         _ => Color.FromRgb(0x3A, 0x96, 0xDD),                       // SSH: cyan
     };
 
@@ -80,6 +84,7 @@ public class SessionView : Grid
         SessionKind.Sftp => "⇅",
         SessionKind.Scp => "⇄",
         SessionKind.WebDav => "☁",
+        SessionKind.Wscp => "🗂",
         _ => "SSH",
     };
 
@@ -129,23 +134,35 @@ public class SessionView : Grid
         RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
         RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-        _term = new TerminalControl(cfg);
-        _term.Input += bytes => _conn?.Send(bytes);
-        _term.GridResized += (cols, rows) => _conn?.Resize(cols, rows);
-        _term.DoubleClicked += () => DoubleClicked?.Invoke(this);
-        _term.TitleChanged += t =>
+        if (cfg.Kind == SessionKind.Wscp)
         {
-            // Local shells (PowerShell/CMD/Bash/WSL) set their OSC window title to the
-            // current directory path; show the shell name instead. Remote sessions keep
-            // the OSC title so it can reflect the remote host/app.
-            var next = cfg.IsLocal || string.IsNullOrWhiteSpace(t) ? cfg.Display : t;
-            if (next == TabTitle) return;
-            TabTitle = next;
-            TitleChanged?.Invoke(this);
-        };
-        SetRow(_term, 0);
-        Children.Add(_term);
-        AddTerminalMenuItems();
+            // A WSCP session has no terminal — it hosts a graphical dual-pane file
+            // manager whose connection state feeds the same status strip.
+            _wscp = new WscpPanel(cfg);
+            _wscp.StateChanged += (state, text) => SetState(state, text);
+            SetRow(_wscp, 0);
+            Children.Add(_wscp);
+        }
+        else
+        {
+            _term = new TerminalControl(cfg);
+            _term.Input += bytes => _conn?.Send(bytes);
+            _term.GridResized += (cols, rows) => _conn?.Resize(cols, rows);
+            _term.DoubleClicked += () => DoubleClicked?.Invoke(this);
+            _term.TitleChanged += t =>
+            {
+                // Local shells (PowerShell/CMD/Bash/WSL) set their OSC window title to the
+                // current directory path; show the shell name instead. Remote sessions keep
+                // the OSC title so it can reflect the remote host/app.
+                var next = cfg.IsLocal || string.IsNullOrWhiteSpace(t) ? cfg.Display : t;
+                if (next == TabTitle) return;
+                TabTitle = next;
+                TitleChanged?.Invoke(this);
+            };
+            SetRow(_term, 0);
+            Children.Add(_term);
+            AddTerminalMenuItems();
+        }
 
         _status = new TextBlock
         {
@@ -181,7 +198,7 @@ public class SessionView : Grid
             _pendingConnect = false;
             _ = ConnectAsync();
         }
-        _term.Focus();
+        FocusTerminal();
     }
 
     private const int MaxAuthAttempts = 4;
@@ -196,7 +213,13 @@ public class SessionView : Grid
 
     private async Task ConnectCoreAsync()
     {
-        int cols = _term.Buffer.Cols;
+        if (_cfg.Kind == SessionKind.Wscp)
+        {
+            await _wscp!.ConnectAsync();
+            return;
+        }
+
+        int cols = _term!.Buffer.Cols;
         int rows = _term.Buffer.Rows;
 
         if (_cfg.IsLocal)
@@ -229,7 +252,7 @@ public class SessionView : Grid
             {
                 await _conn.ConnectAsync(cols, rows);
                 SetState(ConnectionState.Connected, $"Connected — {_cfg.Username}@{_cfg.Host}");
-                _term.Feed(Enc($"\x1b[32m*** Connected to {_cfg.Host} ***\x1b[0m\r\n"));
+                _term!.Feed(Enc($"\x1b[32m*** Connected to {_cfg.Host} ***\x1b[0m\r\n"));
                 return;
             }
             catch (SshAuthenticationException ex)
@@ -311,7 +334,7 @@ public class SessionView : Grid
     private void HookBackend(ITerminalBackend backend)
     {
         backend.StatusChanged += SetStatusText;
-        backend.DataReceived += bytes => { _term.Feed(bytes); _recorder.Write(bytes); };
+        backend.DataReceived += bytes => { _term!.Feed(bytes); _recorder.Write(bytes); };
         backend.Closed += msg =>
         {
             if (_state != ConnectionState.Connecting)
@@ -341,7 +364,7 @@ public class SessionView : Grid
     private void Fail(string msg)
     {
         SetState(ConnectionState.Failed, "Connection failed: " + msg);
-        _term.Feed(Enc($"\r\n\x1b[31m*** Connection failed: {msg} ***\x1b[0m\r\n"));
+        _term?.Feed(Enc($"\r\n\x1b[31m*** Connection failed: {msg} ***\x1b[0m\r\n"));
     }
 
     private static byte[] Enc(string s) => Encoding.UTF8.GetBytes(s);
@@ -349,11 +372,17 @@ public class SessionView : Grid
     public async Task ReconnectAsync()
     {
         if (_connecting) return;   // don't interrupt/overwrite an in-flight connect
+        if (_cfg.Kind == SessionKind.Wscp)
+        {
+            SetState(ConnectionState.Connecting, "Reconnecting …");
+            await _wscp!.ReconnectAsync();
+            return;
+        }
         _conn?.Dispose();
         _conn = null;
         SetState(ConnectionState.Connecting, "Reconnecting …");
         await ConnectAsync();
-        _term.Focus();
+        _term?.Focus();
     }
 
     /// <summary>Change connection state (dot colour + status bar) and status text.
@@ -384,9 +413,16 @@ public class SessionView : Grid
 
     public bool IsConnected => _connected;
 
-    public void FocusTerminal() => _term.Focus();
+    public void FocusTerminal()
+    {
+        if (_wscp != null) _wscp.FocusDefault();
+        else _term?.Focus();
+    }
 
-    /// <summary>Send raw text to the remote shell (used by the broadcast bar).</summary>
+    /// <summary>True for a WSCP file-manager session (no terminal, no broadcast target).</summary>
+    public bool IsFileManager => _wscp != null;
+
+    /// <summary>Send raw text to the remote shell (used by the broadcast bar). No-op for WSCP.</summary>
     public void SendText(string text) => _conn?.Send(text);
 
     // -------------------- output recording --------------------
@@ -404,7 +440,7 @@ public class SessionView : Grid
     /// <summary>Add "Record" and "Open recordings folder" to the terminal's right-click menu.</summary>
     private void AddTerminalMenuItems()
     {
-        if (_term.ContextMenu is not ContextMenu menu) return;
+        if (_term?.ContextMenu is not ContextMenu menu) return;
         menu.Items.Add(new Separator());
         _recordMenuItem = new MenuItem { Header = "Start Recording (this session)" };
         _recordMenuItem.Click += (_, _) => ToggleRecording();
@@ -439,7 +475,8 @@ public class SessionView : Grid
     public void Close()
     {
         _recorder.Stop();
-        _term.Shutdown();
+        _term?.Shutdown();
+        _wscp?.Shutdown();
         _conn?.Dispose();
         _conn = null;
     }
@@ -452,7 +489,8 @@ public class SessionView : Grid
     public void CloseAsync()
     {
         _recorder.Stop();
-        _term.Shutdown();
+        _term?.Shutdown();
+        _wscp?.Shutdown();
         var conn = _conn;
         _conn = null;
         if (conn != null)

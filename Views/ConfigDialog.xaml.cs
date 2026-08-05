@@ -108,7 +108,7 @@ public partial class ConfigDialog : Window
     {
         var on = new SolidColorBrush(Color.FromRgb(0x1B, 0x6A, 0xC6));
         var off = new SolidColorBrush(Color.FromRgb(0xBB, 0xBB, 0xBB));
-        var icons = new[] { IconSsh, IconPs, IconCmd, IconBash, IconWsl, IconSftp, IconScp, IconWebdav };
+        var icons = new[] { IconSsh, IconPs, IconCmd, IconBash, IconWsl, IconSftp, IconScp, IconWebdav, IconWscp };
         for (int i = 0; i < icons.Length; i++)
         {
             bool active = i == (int)SelectedKind;
@@ -134,6 +134,7 @@ public partial class ConfigDialog : Window
 
         KindHint.Text = SelectedKind switch
         {
+            SessionKind.Wscp => "Connection type: WSCP — a WinSCP-style dual-pane file manager over SFTP (uses the SSH host/port/login).",
             SessionKind.WebDav => "Connection type: WebDAV — put the server host/URL in Host and the port (443 or 80).",
             var k when SessionConfig.IsLocalKind(k) =>
                 $"Connection type: local {SessionConfig.KindName(k)} — runs on this PC, no host or login needed.",
@@ -184,7 +185,7 @@ public partial class ConfigDialog : Window
     private void Connect_Click(object sender, RoutedEventArgs e)
     {
         var kind = SelectedKind;
-        if (kind == SessionKind.Ssh && string.IsNullOrWhiteSpace(HostBox.Text))
+        if ((kind == SessionKind.Ssh || kind == SessionKind.Wscp) && string.IsNullOrWhiteSpace(HostBox.Text))
         {
             MessageBox.Show(this, "Please enter a host name or IP address.", "Multi-SSH",
                 MessageBoxButton.OK, MessageBoxImage.Warning);

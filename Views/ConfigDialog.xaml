@@ -84,6 +84,10 @@
                                     ToolTip="WebDAV — HTTP file" Click="KindIcon_Click">
                                 <TextBlock Text="☁" FontSize="13" Foreground="#B45309"/>
                             </Button>
+                            <Button x:Name="IconWscp" Tag="8" Style="{StaticResource KindIcon}"
+                                    ToolTip="WSCP — WinSCP-style dual-pane file manager" Click="KindIcon_Click">
+                                <TextBlock Text="🗂" FontSize="13" Foreground="#2E7D32"/>
+                            </Button>
                         </StackPanel>
                         <TextBlock Text="Basic options for your session" FontWeight="Bold"
                                    VerticalAlignment="Center"/>
@@ -158,6 +162,13 @@
                                     <TextBlock Text="☁" FontSize="13" Foreground="#B45309"
                                                Width="26" TextAlignment="Center" VerticalAlignment="Center"/>
                                     <TextBlock Text="WebDAV (HTTP file)" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </ComboBoxItem>
+                            <ComboBoxItem>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🗂" FontSize="13" Foreground="#2E7D32"
+                                               Width="26" TextAlignment="Center" VerticalAlignment="Center"/>
+                                    <TextBlock Text="WSCP (file manager)" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </ComboBoxItem>
                         </ComboBox>
