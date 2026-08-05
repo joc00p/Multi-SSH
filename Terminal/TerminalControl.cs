@@ -140,6 +140,12 @@ public class TerminalControl : Control
     private void BuildTypeface()
     {
         var family = new FontFamily(_cfg.FontFamily);
+        // A terminal must be monospaced: every cell is placed at column × cell-width. If the
+        // configured font is proportional (e.g. a UI font like "Segoe UI" got set as the
+        // default), text runs don't fill their cells — the prompt, then each coloured run,
+        // drift apart and the cursor lands mid-line. Fall back to a monospace family so the
+        // grid lines up regardless of what was configured.
+        if (!IsMonospace(family)) family = new FontFamily("Consolas");
         _typeface = new Typeface(family, FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
         _boldTypeface = new Typeface(family, FontStyles.Normal, FontWeights.Bold, FontStretches.Normal);
 
@@ -148,6 +154,22 @@ public class TerminalControl : Control
         _cellW = Math.Ceiling(ft.WidthIncludingTrailingWhitespace);
         _cellH = Math.Ceiling(ft.Height);
         _baseline = ft.Baseline;
+    }
+
+    /// <summary>Whether a font family is fixed-width, tested by comparing a narrow ('i') and a
+    /// wide ('W') glyph. Proportional fonts (Segoe UI, Arial, …) differ; monospace fonts match.</summary>
+    private bool IsMonospace(FontFamily family)
+    {
+        try
+        {
+            var tf = new Typeface(family, FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
+            double Width(char c) => new FormattedText(c.ToString(), CultureInfo.InvariantCulture,
+                FlowDirection.LeftToRight, tf, _fontSize, Brushes.White, _pixelsPerDip)
+                .WidthIncludingTrailingWhitespace;
+            double wi = Width('i'), ww = Width('W');
+            return ww > 0 && Math.Abs(wi - ww) < 0.5;
+        }
+        catch { return true; }   // if measuring fails, don't override the choice
     }
 
     // -------------------- incoming data --------------------
