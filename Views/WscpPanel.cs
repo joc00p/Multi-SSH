@@ -30,7 +30,6 @@ public class WscpPanel : Grid
     private string _localCwd;
     private bool _connecting;
     private bool _busy;
-    private bool _activeIsRemote = true;
     private string _connectedStatus = "";
 
     private readonly ObservableCollection<FsItem> _localItems = new();
@@ -42,11 +41,6 @@ public class WscpPanel : Grid
     private readonly TextBox _remotePathBox;
     private readonly TextBlock _remoteHeader;
 
-    // The bordered container for each pane, used to highlight whichever pane is active
-    // (the target of New folder / Rename / Delete).
-    private Border _localPane = null!;
-    private Border _remotePane = null!;
-
     /// <summary>Connection state + status text, surfaced to the hosting SessionView's status strip.</summary>
     public event Action<ConnectionState, string>? StateChanged;
 
@@ -57,15 +51,9 @@ public class WscpPanel : Grid
         _cfg = cfg;
         _localCwd = SafeStartDir();
 
-        // Toolbar (row 0) + the two file panes (row 1).
-        RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-
-        var toolbar = BuildToolbar();
-        SetRow(toolbar, 0);
-        Children.Add(toolbar);
-
-        // Local | transfer buttons | Remote
+        // Local pane | transfer buttons | Remote pane. Each pane carries its own toolbar
+        // (Up / Refresh / New / Rename / Delete) that acts explicitly on that side, so an
+        // action can never land on the wrong pane.
         var body = new Grid();
         body.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         body.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -89,34 +77,10 @@ public class WscpPanel : Grid
         Grid.SetColumn(remotePane, 2);
         body.Children.Add(remotePane);
 
-        SetRow(body, 1);
         Children.Add(body);
-
-        UpdatePaneHighlight();   // reflect the initial active pane
 
         // Local side can be listed immediately, before the connection is up.
         RefreshLocal();
-    }
-
-    /// <summary>Set which pane the folder/rename/delete actions target, and highlight it.</summary>
-    private void SetActivePane(bool remote)
-    {
-        _activeIsRemote = remote;
-        UpdatePaneHighlight();
-    }
-
-    private void UpdatePaneHighlight()
-    {
-        ApplyPaneHighlight(_remotePane, _activeIsRemote);
-        ApplyPaneHighlight(_localPane, !_activeIsRemote);
-    }
-
-    private static void ApplyPaneHighlight(Border? pane, bool active)
-    {
-        if (pane == null) return;
-        pane.SetResourceReference(Border.BorderBrushProperty,
-            active ? ThemeManager.Accent : ThemeManager.ButtonBorder);
-        pane.BorderThickness = new Thickness(active ? 2 : 1);
     }
 
     // -------------------- connection --------------------
@@ -402,15 +366,16 @@ public class WscpPanel : Grid
         }
     }
 
-    // -------------------- file operations (act on the focused pane) --------------------
+    // -------------------- file operations (each button says which side it targets) --------------------
 
-    private async void NewFolder()
+    private async void NewFolder(bool remote)
     {
-        var name = InputDialog.Ask(Window.GetWindow(this), "New Folder", "Folder name:");
+        var name = InputDialog.Ask(Window.GetWindow(this), "New Folder",
+            $"New folder in the {(remote ? "remote" : "local")} directory:");
         if (string.IsNullOrWhiteSpace(name)) return;
         name = name.Trim();
 
-        if (_activeIsRemote)
+        if (remote)
             await DoAsync($"Creating {name}…", () => _sftp!.CreateDirectory(CombineRemote(_remoteCwd, name)), refreshLocal: false);
         else
         {
@@ -419,15 +384,15 @@ public class WscpPanel : Grid
         }
     }
 
-    private async void RenameSelected()
+    private async void RenameSelected(bool remote)
     {
-        var it = _activeIsRemote ? SelectedRemote().FirstOrDefault() : SelectedLocal().FirstOrDefault();
+        var it = (remote ? SelectedRemote() : SelectedLocal()).FirstOrDefault();
         if (it == null) { Status("Select an item to rename"); return; }
         var name = InputDialog.Ask(Window.GetWindow(this), "Rename", "New name:", it.Name);
         if (string.IsNullOrWhiteSpace(name) || name == it.Name) return;
         name = name.Trim();
 
-        if (_activeIsRemote)
+        if (remote)
             await DoAsync($"Renaming {it.Name}…",
                 () => _sftp!.RenameFile(CombineRemote(_remoteCwd, it.Name), CombineRemote(_remoteCwd, name)),
                 refreshLocal: false);
@@ -444,18 +409,18 @@ public class WscpPanel : Grid
         }
     }
 
-    private async void DeleteSelected()
+    private async void DeleteSelected(bool remote)
     {
-        var items = _activeIsRemote ? SelectedRemote() : SelectedLocal();
+        var items = remote ? SelectedRemote() : SelectedLocal();
         if (items.Count == 0) { Status("Select item(s) to delete"); return; }
 
-        var where = _activeIsRemote ? "remote" : "local";
+        var where = remote ? "remote" : "local";
         if (MessageBox.Show(Window.GetWindow(this),
                 $"Delete {items.Count} {where} item(s)? This cannot be undone.",
                 "WSCP — Delete", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes)
             return;
 
-        if (_activeIsRemote)
+        if (remote)
             await DoAsync($"Deleting {items.Count} item(s)…", () =>
             {
                 foreach (var it in items) DeleteRemote(CombineRemote(_remoteCwd, it.Name), it.IsDirectory);
@@ -512,22 +477,6 @@ public class WscpPanel : Grid
 
     // -------------------- UI construction --------------------
 
-    private Border BuildToolbar()
-    {
-        var bar = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(4, 3, 4, 3) };
-        bar.Children.Add(ToolButton("⟳", "Refresh both panes", (_, _) => { RefreshLocal(); RefreshRemote(); }));
-        bar.Children.Add(ToolButton("＋", "New folder in the active pane (highlighted border)", (_, _) => NewFolder()));
-        bar.Children.Add(ToolButton("✎", "Rename the selected item in the active pane (highlighted border)", (_, _) => RenameSelected()));
-        bar.Children.Add(ToolButton("🗑", "Delete the selected items in the active pane (highlighted border)", (_, _) => DeleteSelected()));
-        bar.Children.Add(new Separator { Margin = new Thickness(6, 2, 6, 2) });
-        bar.Children.Add(ToolButton("Upload ▶", "Upload selected local items to the remote folder", (_, _) => UploadSelected()));
-        bar.Children.Add(ToolButton("◀ Download", "Download selected remote items to the local folder", (_, _) => DownloadSelected()));
-
-        var border = new Border { Child = bar };
-        border.SetResourceReference(Border.BackgroundProperty, ThemeManager.HeaderBg);
-        return border;
-    }
-
     private FrameworkElement BuildTransferColumn()
     {
         var panel = new StackPanel
@@ -568,16 +517,18 @@ public class WscpPanel : Grid
         DockPanel.SetDock(header, Dock.Top);
         dock.Children.Add(header);
 
-        var up = new Button
-        {
-            Content = "↑",
-            ToolTip = "Up one folder",
-            Width = 26,
-            Height = 24,
-            Margin = new Thickness(4, 0, 0, 4),
-            Cursor = Cursors.Hand,
-        };
-        up.Click += (_, _) => { if (remote) NavigateRemote(".."); else NavigateLocal(ParentLocal()); };
+        // Per-pane toolbar — every button acts explicitly on THIS side.
+        string side = remote ? "the remote host" : "this PC";
+        var tools = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 4) };
+        tools.Children.Add(ToolButton("↑", "Up one folder",
+            (_, _) => { if (remote) NavigateRemote(".."); else NavigateLocal(ParentLocal()); }));
+        tools.Children.Add(ToolButton("⟳", "Refresh this pane",
+            (_, _) => { if (remote) RefreshRemote(); else RefreshLocal(); }));
+        tools.Children.Add(ToolButton("＋", $"New folder on {side}", (_, _) => NewFolder(remote)));
+        tools.Children.Add(ToolButton("✎", $"Rename the selected item on {side}", (_, _) => RenameSelected(remote)));
+        tools.Children.Add(ToolButton("🗑", $"Delete the selected item(s) on {side}", (_, _) => DeleteSelected(remote)));
+        DockPanel.SetDock(tools, Dock.Top);
+        dock.Children.Add(tools);
 
         pathBox.Margin = new Thickness(0, 0, 0, 4);
         pathBox.KeyDown += (_, e) =>
@@ -587,22 +538,13 @@ public class WscpPanel : Grid
             else NavigateLocal(pathBox.Text.Trim());
             e.Handled = true;
         };
-        var addr = new DockPanel();
-        DockPanel.SetDock(up, Dock.Left);
-        addr.Children.Add(up);
-        addr.Children.Add(pathBox);
-        DockPanel.SetDock(addr, Dock.Top);
-        dock.Children.Add(addr);
+        DockPanel.SetDock(pathBox, Dock.Top);
+        dock.Children.Add(pathBox);
 
         dock.Children.Add(list);
 
-        // A transparent background makes the whole pane (including empty space) hit-testable,
-        // so clicking anywhere in it — list, path box, header, or gaps — marks it active.
-        var border = new Border { BorderThickness = new Thickness(1), Background = Brushes.Transparent, Child = dock };
+        var border = new Border { BorderThickness = new Thickness(1), Child = dock };
         border.SetResourceReference(Border.BorderBrushProperty, ThemeManager.ButtonBorder);
-        border.PreviewMouseDown += (_, _) => SetActivePane(remote);
-        border.PreviewGotKeyboardFocus += (_, _) => SetActivePane(remote);
-        if (remote) _remotePane = border; else _localPane = border;
         return border;
     }
 
