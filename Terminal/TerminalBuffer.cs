@@ -67,13 +67,18 @@ public class TerminalBuffer
                 newGrid[r][c] = Cell.Blank(Cell.Default, Cell.Default);
         }
 
-        // Copy over whatever we can from the old grid (bottom-aligned).
+        // Growing: keep existing lines anchored to the TOP and let the new blank rows
+        // appear at the bottom (standard terminal behaviour). Bottom-aligning a grow would
+        // push a freshly started shell's prompt — and the cursor — into the middle of the
+        // pane. Shrinking: keep the BOTTOM rows (the most recent output and the prompt) and
+        // let the oldest rows fall away.
+        bool growing = rows >= oldRows;
         int copyRows = Math.Min(rows, oldRows);
         int copyCols = Math.Min(cols, Cols);
         for (int r = 0; r < copyRows; r++)
         {
-            int srcRow = oldRows - copyRows + r;
-            int dstRow = rows - copyRows + r;
+            int srcRow = growing ? r : oldRows - copyRows + r;
+            int dstRow = growing ? r : rows - copyRows + r;
             for (int c = 0; c < copyCols; c++)
                 newGrid[dstRow][c] = _grid[srcRow][c];
         }
@@ -84,10 +89,11 @@ public class TerminalBuffer
         _scrollTop = 0;
         _scrollBottom = rows - 1;
         CursorX = Math.Min(CursorX, cols - 1);
-        // The content was bottom-aligned (shifted by rows-oldRows), so shift the cursor by
-        // the same amount instead of merely clamping — otherwise a grow leaves the cursor
-        // stranded in the middle while the prompt sits at the bottom.
-        CursorY = Math.Clamp(CursorY + (rows - oldRows), 0, rows - 1);
+        // Growing leaves the cursor on its line (content stayed at the top). Shrinking moved
+        // the kept content up by (oldRows-rows), so move the cursor by the same amount.
+        CursorY = growing
+            ? Math.Min(CursorY, rows - 1)
+            : Math.Clamp(CursorY + (rows - oldRows), 0, rows - 1);
         WrapPending = false;
     }
 
