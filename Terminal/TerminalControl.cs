@@ -151,7 +151,10 @@ public class TerminalControl : Control
 
         var ft = new FormattedText("M", CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
             _typeface, _fontSize, Brushes.White, _pixelsPerDip);
-        _cellW = Math.Ceiling(ft.WidthIncludingTrailingWhitespace);
+        // Use the font's exact advance width for the cell, NOT a rounded-up one: rounding
+        // accumulates across a long run (e.g. the prompt) so the next coloured run — and the
+        // cursor — start a few pixels too far right, leaving a visible gap before typed input.
+        _cellW = ft.WidthIncludingTrailingWhitespace;
         _cellH = Math.Ceiling(ft.Height);
         _baseline = ft.Baseline;
     }
